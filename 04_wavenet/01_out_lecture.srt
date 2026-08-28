@@ -1,0 +1,6235 @@
+1
+00:00:00,000 --> 00:00:02,580
+hi everyone today we are continuing our
+
+2
+00:00:02,580 --> 00:00:04,500
+implementation of make more our favorite
+
+3
+00:00:04,500 --> 00:00:06,420
+character level language model
+
+4
+00:00:06,420 --> 00:00:07,980
+now you'll notice that the background
+
+5
+00:00:07,980 --> 00:00:09,720
+behind me is different that's because I
+
+6
+00:00:09,720 --> 00:00:12,000
+am in Kyoto and it is awesome so I'm in
+
+7
+00:00:12,000 --> 00:00:13,440
+a hotel room here
+
+8
+00:00:13,440 --> 00:00:15,059
+now over the last few lectures we've
+
+9
+00:00:15,059 --> 00:00:17,760
+built up to this architecture that is a
+
+10
+00:00:17,760 --> 00:00:19,740
+multi-layer perceptron character level
+
+11
+00:00:19,740 --> 00:00:21,480
+language model so we see that it
+
+12
+00:00:21,480 --> 00:00:23,039
+receives three previous characters and
+
+13
+00:00:23,039 --> 00:00:24,600
+tries to predict the fourth character in
+
+14
+00:00:24,600 --> 00:00:26,760
+a sequence using a very simple multi
+
+15
+00:00:26,760 --> 00:00:28,920
+perceptron using one hidden layer of
+
+16
+00:00:28,920 --> 00:00:31,439
+neurons with 10ational neuralities
+
+17
+00:00:31,439 --> 00:00:33,300
+so we'd like to do now in this lecture
+
+18
+00:00:33,300 --> 00:00:34,620
+is I'd like to complexify this
+
+19
+00:00:34,620 --> 00:00:36,719
+architecture in particular we would like
+
+20
+00:00:36,719 --> 00:00:38,820
+to take more characters in a sequence as
+
+21
+00:00:38,820 --> 00:00:41,100
+an input not just three and in addition
+
+22
+00:00:41,100 --> 00:00:42,960
+to that we don't just want to feed them
+
+23
+00:00:42,960 --> 00:00:45,000
+all into a single hidden layer because
+
+24
+00:00:45,000 --> 00:00:46,800
+that squashes too much information too
+
+25
+00:00:46,800 --> 00:00:49,079
+quickly instead we would like to make a
+
+26
+00:00:49,079 --> 00:00:51,539
+deeper model that progressively fuses
+
+27
+00:00:51,539 --> 00:00:53,579
+this information to make its guess about
+
+28
+00:00:53,579 --> 00:00:55,559
+the next character in a sequence
+
+29
+00:00:55,559 --> 00:00:57,539
+and so we'll see that as we make this
+
+30
+00:00:57,539 --> 00:00:59,879
+architecture more complex we're actually
+
+31
+00:00:59,879 --> 00:01:01,620
+going to arrive at something that looks
+
+32
+00:01:01,620 --> 00:01:03,719
+very much like a wavenet
+
+33
+00:01:03,719 --> 00:01:05,519
+the witness is this paper published by
+
+34
+00:01:05,519 --> 00:01:09,600
+the point in 2016 and it is also a
+
+35
+00:01:09,600 --> 00:01:11,939
+language model basically but it tries to
+
+36
+00:01:11,939 --> 00:01:13,619
+predict audio sequences instead of
+
+37
+00:01:13,619 --> 00:01:15,840
+character level sequences or Word level
+
+38
+00:01:15,840 --> 00:01:18,960
+sequences but fundamentally the modeling
+
+39
+00:01:18,960 --> 00:01:20,820
+setup is identical it is an auto
+
+40
+00:01:20,820 --> 00:01:23,400
+aggressive model and it tries to predict
+
+41
+00:01:23,400 --> 00:01:25,439
+next character in a sequence and the
+
+42
+00:01:25,439 --> 00:01:26,820
+architecture actually takes this
+
+43
+00:01:26,820 --> 00:01:29,580
+interesting hierarchical sort of
+
+44
+00:01:29,580 --> 00:01:31,200
+approach to predicting the next
+
+45
+00:01:31,200 --> 00:01:33,240
+character in a sequence uh with the
+
+46
+00:01:33,240 --> 00:01:35,820
+street-like structure and this is the
+
+47
+00:01:35,820 --> 00:01:36,900
+architecture and we're going to
+
+48
+00:01:36,900 --> 00:01:38,820
+implement it in the course of this video
+
+49
+00:01:38,820 --> 00:01:41,640
+so let's get started so the starter code
+
+50
+00:01:41,640 --> 00:01:43,799
+for part five is very similar to where
+
+51
+00:01:43,799 --> 00:01:46,439
+we ended up in in part three recall that
+
+52
+00:01:46,439 --> 00:01:47,939
+part four was the manual black
+
+53
+00:01:47,939 --> 00:01:49,560
+replication exercise that is kind of an
+
+54
+00:01:49,560 --> 00:01:51,600
+aside so we are coming back to part
+
+55
+00:01:51,600 --> 00:01:53,759
+three copy pasting chunks out of it and
+
+56
+00:01:53,759 --> 00:01:55,200
+that is our starter code for part five
+
+57
+00:01:55,200 --> 00:01:57,060
+I've changed very few things otherwise
+
+58
+00:01:57,060 --> 00:01:59,040
+so a lot of this should look familiar to
+
+59
+00:01:59,040 --> 00:02:01,200
+if you've gone through part three so in
+
+60
+00:02:01,200 --> 00:02:03,119
+particular very briefly we are doing
+
+61
+00:02:03,119 --> 00:02:05,399
+Imports we are reading our our data set
+
+62
+00:02:05,399 --> 00:02:09,060
+of words and we are processing their set
+
+63
+00:02:09,060 --> 00:02:11,520
+of words into individual examples and
+
+64
+00:02:11,520 --> 00:02:13,319
+none of this data generation code has
+
+65
+00:02:13,319 --> 00:02:15,239
+changed and basically we have lots and
+
+66
+00:02:15,239 --> 00:02:17,700
+lots of examples in particular we have
+
+67
+00:02:17,700 --> 00:02:21,540
+182 000 examples of three characters try
+
+68
+00:02:21,540 --> 00:02:24,060
+to predict the fourth one and we've
+
+69
+00:02:24,060 --> 00:02:25,800
+broken up every one of these words into
+
+70
+00:02:25,800 --> 00:02:27,780
+little problems of given three
+
+71
+00:02:27,780 --> 00:02:29,640
+characters predict the fourth one so
+
+72
+00:02:29,640 --> 00:02:30,840
+this is our data set and this is what
+
+73
+00:02:30,840 --> 00:02:32,940
+we're trying to get the neural lot to do
+
+74
+00:02:32,940 --> 00:02:35,160
+now in part three we started to develop
+
+75
+00:02:35,160 --> 00:02:39,540
+our code around these layer modules
+
+76
+00:02:39,540 --> 00:02:40,980
+um that are for example like class
+
+77
+00:02:40,980 --> 00:02:42,900
+linear and we're doing this because we
+
+78
+00:02:42,900 --> 00:02:44,700
+want to think of these modules as
+
+79
+00:02:44,700 --> 00:02:47,459
+building blocks and like a Lego building
+
+80
+00:02:47,459 --> 00:02:49,140
+block bricks that we can sort of like
+
+81
+00:02:49,140 --> 00:02:51,900
+stack up into neural networks and we can
+
+82
+00:02:51,900 --> 00:02:53,459
+feed data between these layers and stack
+
+83
+00:02:53,459 --> 00:02:56,640
+them up into a sort of graphs
+
+84
+00:02:56,640 --> 00:02:59,040
+now we also developed these layers to
+
+85
+00:02:59,040 --> 00:03:01,680
+have apis and signatures very similar to
+
+86
+00:03:01,680 --> 00:03:04,140
+those that are found in pytorch so we
+
+87
+00:03:04,140 --> 00:03:05,940
+have torch.nn and it's got all these
+
+88
+00:03:05,940 --> 00:03:07,319
+layer building blocks that you would use
+
+89
+00:03:07,319 --> 00:03:09,300
+in practice and we were developing all
+
+90
+00:03:09,300 --> 00:03:11,760
+of these to mimic the apis of these so
+
+91
+00:03:11,760 --> 00:03:13,800
+for example we have linear so there will
+
+92
+00:03:13,800 --> 00:03:17,280
+also be a torch.nn.linear and its
+
+93
+00:03:17,280 --> 00:03:18,720
+signature will be very similar to our
+
+94
+00:03:18,720 --> 00:03:20,580
+signature and the functionality will be
+
+95
+00:03:20,580 --> 00:03:22,440
+also quite identical as far as I'm aware
+
+96
+00:03:22,440 --> 00:03:24,599
+so we have the linear layer with the
+
+97
+00:03:24,599 --> 00:03:27,180
+Bass from 1D layer and the 10h layer
+
+98
+00:03:27,180 --> 00:03:29,099
+that we developed previously
+
+99
+00:03:29,099 --> 00:03:32,040
+and linear just as a matrix multiply in
+
+100
+00:03:32,040 --> 00:03:35,099
+the forward pass of this module batch
+
+101
+00:03:35,099 --> 00:03:36,540
+number of course is this crazy layer
+
+102
+00:03:36,540 --> 00:03:37,440
+that we developed in the previous
+
+103
+00:03:37,440 --> 00:03:40,319
+lecture and what's crazy about it is
+
+104
+00:03:40,319 --> 00:03:42,959
+well there's many things number one it
+
+105
+00:03:42,959 --> 00:03:44,760
+has these running mean and variances
+
+106
+00:03:44,760 --> 00:03:46,500
+that are trained outside of back
+
+107
+00:03:46,500 --> 00:03:49,159
+propagation they are trained using
+
+108
+00:03:49,159 --> 00:03:52,319
+exponential moving average inside this
+
+109
+00:03:52,319 --> 00:03:54,420
+layer when we call the forward pass
+
+110
+00:03:54,420 --> 00:03:56,700
+in addition to that
+
+111
+00:03:56,700 --> 00:03:58,620
+there's this training plug because the
+
+112
+00:03:58,620 --> 00:03:59,879
+behavior of bathroom is different during
+
+113
+00:03:59,879 --> 00:04:02,340
+train time and evaluation time and so
+
+114
+00:04:02,340 --> 00:04:03,540
+suddenly we have to be very careful that
+
+115
+00:04:03,540 --> 00:04:05,580
+bash form is in its correct state that
+
+116
+00:04:05,580 --> 00:04:07,319
+it's in the evaluation state or training
+
+117
+00:04:07,319 --> 00:04:08,819
+state so that's something to now keep
+
+118
+00:04:08,819 --> 00:04:10,200
+track of something that sometimes
+
+119
+00:04:10,200 --> 00:04:11,580
+introduces bugs
+
+120
+00:04:11,580 --> 00:04:13,680
+uh because you forget to put it into the
+
+121
+00:04:13,680 --> 00:04:15,659
+right mode and finally we saw that
+
+122
+00:04:15,659 --> 00:04:18,060
+Bachelor couples the statistics or the
+
+123
+00:04:18,060 --> 00:04:20,639
+the activations across the examples in
+
+124
+00:04:20,639 --> 00:04:22,919
+the batch so normally we thought of the
+
+125
+00:04:22,919 --> 00:04:25,580
+bat as just an efficiency thing but now
+
+126
+00:04:25,580 --> 00:04:28,560
+we are coupling the computation across
+
+127
+00:04:28,560 --> 00:04:30,660
+batch elements and it's done for the
+
+128
+00:04:30,660 --> 00:04:32,040
+purposes of controlling the automation
+
+129
+00:04:32,040 --> 00:04:33,900
+statistics as we saw in the previous
+
+130
+00:04:33,900 --> 00:04:34,979
+video
+
+131
+00:04:34,979 --> 00:04:36,960
+so it's a very weird layer at least a
+
+132
+00:04:36,960 --> 00:04:38,360
+lot of bugs
+
+133
+00:04:38,360 --> 00:04:40,440
+partly for example because you have to
+
+134
+00:04:40,440 --> 00:04:42,300
+modulate the training in eval phase and
+
+135
+00:04:42,300 --> 00:04:44,580
+so on
+
+136
+00:04:44,580 --> 00:04:46,440
+um in addition for example you have to
+
+137
+00:04:46,440 --> 00:04:49,199
+wait for uh the mean and the variance to
+
+138
+00:04:49,199 --> 00:04:51,240
+settle and to actually reach a steady
+
+139
+00:04:51,240 --> 00:04:53,820
+state and so um you have to make sure
+
+140
+00:04:53,820 --> 00:04:55,680
+that you basically there's state in this
+
+141
+00:04:55,680 --> 00:04:59,820
+layer and state is harmful uh usually
+
+142
+00:04:59,820 --> 00:05:02,699
+now I brought out the generator object
+
+143
+00:05:02,699 --> 00:05:04,800
+previously we had a generator equals g
+
+144
+00:05:04,800 --> 00:05:07,020
+and so on inside these layers I've
+
+145
+00:05:07,020 --> 00:05:08,520
+discarded that in favor of just
+
+146
+00:05:08,520 --> 00:05:12,960
+initializing the torch RNG outside here
+
+147
+00:05:12,960 --> 00:05:15,540
+use it just once globally just for
+
+148
+00:05:15,540 --> 00:05:16,740
+Simplicity
+
+149
+00:05:16,740 --> 00:05:18,240
+and then here we are starting to build
+
+150
+00:05:18,240 --> 00:05:19,919
+out some of the neural network elements
+
+151
+00:05:19,919 --> 00:05:22,740
+this should look very familiar we are we
+
+152
+00:05:22,740 --> 00:05:24,660
+have our embedding table C and then we
+
+153
+00:05:24,660 --> 00:05:27,060
+have a list of players and uh it's a
+
+154
+00:05:27,060 --> 00:05:29,180
+linear feeds to Bachelor feeds to 10h
+
+155
+00:05:29,180 --> 00:05:32,400
+and then a linear output layer and its
+
+156
+00:05:32,400 --> 00:05:33,840
+weights are scaled down so we are not
+
+157
+00:05:33,840 --> 00:05:36,539
+confidently wrong at the initialization
+
+158
+00:05:36,539 --> 00:05:38,100
+we see that this is about 12 000
+
+159
+00:05:38,100 --> 00:05:40,500
+parameters we're telling pytorch that
+
+160
+00:05:40,500 --> 00:05:42,660
+the parameters require gradients
+
+161
+00:05:42,660 --> 00:05:44,940
+the optimization is as far as I'm aware
+
+162
+00:05:44,940 --> 00:05:46,620
+identical and should look very very
+
+163
+00:05:46,620 --> 00:05:47,759
+familiar
+
+164
+00:05:47,759 --> 00:05:49,440
+nothing changed here
+
+165
+00:05:49,440 --> 00:05:52,919
+uh loss function looks very crazy we
+
+166
+00:05:52,919 --> 00:05:54,419
+should probably fix this and that's
+
+167
+00:05:54,419 --> 00:05:56,820
+because 32 batch elements are too few
+
+168
+00:05:56,820 --> 00:05:59,340
+and so you can get very lucky lucky or
+
+169
+00:05:59,340 --> 00:06:01,380
+unlucky in any one of these batches and
+
+170
+00:06:01,380 --> 00:06:04,259
+it creates a very thick loss function
+
+171
+00:06:04,259 --> 00:06:06,300
+um so we're going to fix that soon
+
+172
+00:06:06,300 --> 00:06:08,520
+now once we want to evaluate the trained
+
+173
+00:06:08,520 --> 00:06:09,900
+neural network we need to remember
+
+174
+00:06:09,900 --> 00:06:11,880
+because of the bathroom layers to set
+
+175
+00:06:11,880 --> 00:06:13,680
+all the layers to be training equals
+
+176
+00:06:13,680 --> 00:06:15,360
+false so this only matters for the
+
+177
+00:06:15,360 --> 00:06:17,100
+bathroom layer so far
+
+178
+00:06:17,100 --> 00:06:19,699
+and then we evaluate
+
+179
+00:06:19,699 --> 00:06:22,139
+we see that currently we have validation
+
+180
+00:06:22,139 --> 00:06:25,380
+loss of 2.10 which is fairly good but
+
+181
+00:06:25,380 --> 00:06:28,139
+there's still ways to go but even at
+
+182
+00:06:28,139 --> 00:06:30,419
+2.10 we see that when we sample from the
+
+183
+00:06:30,419 --> 00:06:31,680
+model we actually get relatively
+
+184
+00:06:31,680 --> 00:06:34,440
+name-like results that do not exist in a
+
+185
+00:06:34,440 --> 00:06:37,680
+training set so for example Yvonne kilo
+
+186
+00:06:37,680 --> 00:06:40,020
+Pros
+
+187
+00:06:40,020 --> 00:06:43,460
+Alaia Etc so certainly not
+
+188
+00:06:43,460 --> 00:06:46,319
+reasonable not unreasonable I would say
+
+189
+00:06:46,319 --> 00:06:48,539
+but not amazing and we can still push
+
+190
+00:06:48,539 --> 00:06:50,100
+this validation loss even lower and get
+
+191
+00:06:50,100 --> 00:06:52,199
+much better samples that are even more
+
+192
+00:06:52,199 --> 00:06:53,340
+name-like
+
+193
+00:06:53,340 --> 00:06:56,460
+so let's improve this model
+
+194
+00:06:56,460 --> 00:06:58,500
+okay first let's fix this graph because
+
+195
+00:06:58,500 --> 00:07:00,180
+it is daggers in my eyes and I just
+
+196
+00:07:00,180 --> 00:07:01,979
+can't take it anymore
+
+197
+00:07:01,979 --> 00:07:05,460
+um so last I if you recall is a python
+
+198
+00:07:05,460 --> 00:07:07,919
+list of floats so for example the first
+
+199
+00:07:07,919 --> 00:07:10,699
+10 elements
+
+200
+00:07:10,860 --> 00:07:12,600
+now what we'd like to do basically is we
+
+201
+00:07:12,600 --> 00:07:14,220
+need to average up
+
+202
+00:07:14,220 --> 00:07:16,199
+um some of these values to get a more
+
+203
+00:07:16,199 --> 00:07:19,020
+sort of Representative uh value along
+
+204
+00:07:19,020 --> 00:07:20,819
+the way so one way to do this is the
+
+205
+00:07:20,819 --> 00:07:21,840
+following
+
+206
+00:07:21,840 --> 00:07:24,900
+in part torch if I create for example
+
+207
+00:07:24,900 --> 00:07:27,360
+a tensor of the first 10 numbers
+
+208
+00:07:27,360 --> 00:07:29,039
+then this is currently a one-dimensional
+
+209
+00:07:29,039 --> 00:07:31,380
+array but recall that I can view this
+
+210
+00:07:31,380 --> 00:07:33,479
+array as two-dimensional so for example
+
+211
+00:07:33,479 --> 00:07:36,060
+I can use it as a two by five array and
+
+212
+00:07:36,060 --> 00:07:39,240
+this is a 2d tensor now two by five and
+
+213
+00:07:39,240 --> 00:07:40,740
+you see what petroch has done is that
+
+214
+00:07:40,740 --> 00:07:42,840
+the first row of this tensor is the
+
+215
+00:07:42,840 --> 00:07:44,699
+first five elements and the second row
+
+216
+00:07:44,699 --> 00:07:46,740
+is the second five elements
+
+217
+00:07:46,740 --> 00:07:48,960
+I can also view it as a five by two as
+
+218
+00:07:48,960 --> 00:07:50,039
+an example
+
+219
+00:07:50,039 --> 00:07:52,220
+and then recall that I can also
+
+220
+00:07:52,220 --> 00:07:55,080
+use negative one in place of one of
+
+221
+00:07:55,080 --> 00:07:55,979
+these numbers
+
+222
+00:07:55,979 --> 00:07:58,139
+and pytorch will calculate what that
+
+223
+00:07:58,139 --> 00:07:59,639
+number must be in order to make the
+
+224
+00:07:59,639 --> 00:08:01,979
+number of elements work out so this can
+
+225
+00:08:01,979 --> 00:08:03,120
+be
+
+226
+00:08:03,120 --> 00:08:06,000
+this or like that but it will work of
+
+227
+00:08:06,000 --> 00:08:09,020
+course this would not work
+
+228
+00:08:09,240 --> 00:08:11,520
+okay so this allows it to spread out
+
+229
+00:08:11,520 --> 00:08:13,560
+some of the consecutive values into rows
+
+230
+00:08:13,560 --> 00:08:15,479
+so that's very helpful because what we
+
+231
+00:08:15,479 --> 00:08:17,580
+can do now is first of all we're going
+
+232
+00:08:17,580 --> 00:08:21,180
+to create a torshot tensor out of the a
+
+233
+00:08:21,180 --> 00:08:22,680
+list of floats
+
+234
+00:08:22,680 --> 00:08:24,300
+and then we're going to view it as
+
+235
+00:08:24,300 --> 00:08:26,879
+whatever it is but we're going to
+
+236
+00:08:26,879 --> 00:08:29,160
+stretch it out into rows of 1000
+
+237
+00:08:29,160 --> 00:08:31,379
+consecutive elements so the shape of
+
+238
+00:08:31,379 --> 00:08:35,219
+this now becomes 200 by 1000. and each
+
+239
+00:08:35,219 --> 00:08:37,979
+row is one thousand um consecutive
+
+240
+00:08:37,979 --> 00:08:39,659
+elements in this list
+
+241
+00:08:39,659 --> 00:08:41,039
+so that's very helpful because now we
+
+242
+00:08:41,039 --> 00:08:43,860
+can do a mean along the rows
+
+243
+00:08:43,860 --> 00:08:47,100
+and the shape of this will just be 200.
+
+244
+00:08:47,100 --> 00:08:48,899
+and so we've taken basically the mean on
+
+245
+00:08:48,899 --> 00:08:51,899
+every row so plt.plot of that should be
+
+246
+00:08:51,899 --> 00:08:53,580
+something nicer
+
+247
+00:08:53,580 --> 00:08:55,019
+much better
+
+248
+00:08:55,019 --> 00:08:56,820
+so we see that we basically made a lot
+
+249
+00:08:56,820 --> 00:08:59,040
+of progress and then here this is the
+
+250
+00:08:59,040 --> 00:09:01,740
+learning rate Decay so here we see that
+
+251
+00:09:01,740 --> 00:09:03,540
+the learning rate Decay subtracted a ton
+
+252
+00:09:03,540 --> 00:09:05,580
+of energy out of the system and allowed
+
+253
+00:09:05,580 --> 00:09:07,260
+us to settle into sort of the local
+
+254
+00:09:07,260 --> 00:09:09,360
+minimum in this optimization
+
+255
+00:09:09,360 --> 00:09:12,240
+so this is a much nicer plot let me come
+
+256
+00:09:12,240 --> 00:09:15,120
+up and delete the monster and we're
+
+257
+00:09:15,120 --> 00:09:16,980
+going to be using this going forward now
+
+258
+00:09:16,980 --> 00:09:19,680
+next up what I'm bothered by is that you
+
+259
+00:09:19,680 --> 00:09:22,200
+see our forward pass is a little bit
+
+260
+00:09:22,200 --> 00:09:24,000
+gnarly and takes way too many lines of
+
+261
+00:09:24,000 --> 00:09:24,720
+code
+
+262
+00:09:24,720 --> 00:09:26,100
+so in particular we see that we've
+
+263
+00:09:26,100 --> 00:09:28,260
+organized some of the layers inside the
+
+264
+00:09:28,260 --> 00:09:30,899
+layers list but not all of them uh for
+
+265
+00:09:30,899 --> 00:09:32,940
+no reason so in particular we see that
+
+266
+00:09:32,940 --> 00:09:34,500
+we still have the embedding table a
+
+267
+00:09:34,500 --> 00:09:37,260
+special case outside of the layers and
+
+268
+00:09:37,260 --> 00:09:39,180
+in addition to that the viewing
+
+269
+00:09:39,180 --> 00:09:40,800
+operation here is also outside of our
+
+270
+00:09:40,800 --> 00:09:43,200
+layers so let's create layers for these
+
+271
+00:09:43,200 --> 00:09:45,060
+and then we can add those layers to just
+
+272
+00:09:45,060 --> 00:09:46,260
+our list
+
+273
+00:09:46,260 --> 00:09:48,360
+so in particular the two things that we
+
+274
+00:09:48,360 --> 00:09:50,700
+need is here we have this embedding
+
+275
+00:09:50,700 --> 00:09:53,040
+table and we are indexing at the
+
+276
+00:09:53,040 --> 00:09:56,760
+integers inside uh the batch XB uh
+
+277
+00:09:56,760 --> 00:09:58,320
+inside the tensor xB
+
+278
+00:09:58,320 --> 00:10:00,899
+so that's an embedding table lookup just
+
+279
+00:10:00,899 --> 00:10:03,420
+done with indexing and then here we see
+
+280
+00:10:03,420 --> 00:10:04,920
+that we have this view operation which
+
+281
+00:10:04,920 --> 00:10:06,240
+if you recall from the previous video
+
+282
+00:10:06,240 --> 00:10:09,779
+Simply rearranges the character
+
+283
+00:10:09,779 --> 00:10:12,540
+embeddings and stretches them out into a
+
+284
+00:10:12,540 --> 00:10:14,820
+row and effectively what print that does
+
+285
+00:10:14,820 --> 00:10:16,980
+is the concatenation operation basically
+
+286
+00:10:16,980 --> 00:10:19,560
+except it's free because viewing is very
+
+287
+00:10:19,560 --> 00:10:22,740
+cheap in pytorch no no memory is being
+
+288
+00:10:22,740 --> 00:10:24,779
+copied we're just re-representing how we
+
+289
+00:10:24,779 --> 00:10:27,540
+view that tensor so let's create
+
+290
+00:10:27,540 --> 00:10:28,320
+um
+
+291
+00:10:28,320 --> 00:10:31,140
+modules for both of these operations the
+
+292
+00:10:31,140 --> 00:10:32,580
+embedding operation and flattening
+
+293
+00:10:32,580 --> 00:10:33,899
+operation
+
+294
+00:10:33,899 --> 00:10:37,080
+so I actually wrote the code in just to
+
+295
+00:10:37,080 --> 00:10:38,640
+save some time
+
+296
+00:10:38,640 --> 00:10:40,680
+so we have a module embedding and a
+
+297
+00:10:40,680 --> 00:10:43,500
+module pattern and both of them simply
+
+298
+00:10:43,500 --> 00:10:45,300
+do the indexing operation in the forward
+
+299
+00:10:45,300 --> 00:10:49,500
+pass and the flattening operation here
+
+300
+00:10:49,500 --> 00:10:53,880
+and this C now will just become a salt
+
+301
+00:10:53,880 --> 00:10:56,459
+dot weight inside an embedding module
+
+302
+00:10:56,459 --> 00:10:58,440
+and I'm calling these layers
+
+303
+00:10:58,440 --> 00:10:59,880
+specifically embedding a platinum
+
+304
+00:10:59,880 --> 00:11:01,140
+because it turns out that both of them
+
+305
+00:11:01,140 --> 00:11:03,600
+actually exist in pi torch so in
+
+306
+00:11:03,600 --> 00:11:06,000
+phytorch we have n and Dot embedding and
+
+307
+00:11:06,000 --> 00:11:07,440
+it also takes the number of embeddings
+
+308
+00:11:07,440 --> 00:11:09,240
+and the dimensionality of the bedding
+
+309
+00:11:09,240 --> 00:11:11,279
+just like we have here but in addition
+
+310
+00:11:11,279 --> 00:11:13,019
+python takes in a lot of other keyword
+
+311
+00:11:13,019 --> 00:11:15,720
+arguments that we are not using for our
+
+312
+00:11:15,720 --> 00:11:17,760
+purposes yet
+
+313
+00:11:17,760 --> 00:11:19,680
+and for flatten that also exists in
+
+314
+00:11:19,680 --> 00:11:21,959
+pytorch and it also takes additional
+
+315
+00:11:21,959 --> 00:11:23,700
+keyword arguments that we are not using
+
+316
+00:11:23,700 --> 00:11:26,339
+so we have a very simple platform
+
+317
+00:11:26,339 --> 00:11:28,200
+but both of them exist in pytorch
+
+318
+00:11:28,200 --> 00:11:30,720
+they're just a bit more simpler and now
+
+319
+00:11:30,720 --> 00:11:33,720
+that we have these we can simply take
+
+320
+00:11:33,720 --> 00:11:36,839
+out some of these special cased
+
+321
+00:11:36,839 --> 00:11:40,019
+um things so instead of C we're just
+
+322
+00:11:40,019 --> 00:11:41,579
+going to have an embedding
+
+323
+00:11:41,579 --> 00:11:45,600
+and of a cup size and N embed
+
+324
+00:11:45,600 --> 00:11:47,160
+and then after the embedding we are
+
+325
+00:11:47,160 --> 00:11:48,779
+going to flatten
+
+326
+00:11:48,779 --> 00:11:51,000
+so let's construct those modules and now
+
+327
+00:11:51,000 --> 00:11:53,160
+I can take out this the
+
+328
+00:11:53,160 --> 00:11:54,779
+and here I don't have to special case
+
+329
+00:11:54,779 --> 00:11:57,839
+anymore because now C is the embeddings
+
+330
+00:11:57,839 --> 00:12:01,920
+weight and it's inside layers
+
+331
+00:12:01,920 --> 00:12:03,959
+so this should just work
+
+332
+00:12:03,959 --> 00:12:06,300
+and then here our forward pass
+
+333
+00:12:06,300 --> 00:12:08,220
+simplifies substantially because we
+
+334
+00:12:08,220 --> 00:12:10,019
+don't need to do these now outside of
+
+335
+00:12:10,019 --> 00:12:13,019
+these layer outside and explicitly
+
+336
+00:12:13,019 --> 00:12:15,120
+they're now inside layers
+
+337
+00:12:15,120 --> 00:12:17,100
+so we can delete those
+
+338
+00:12:17,100 --> 00:12:19,800
+but now to to kick things off we want
+
+339
+00:12:19,800 --> 00:12:21,779
+this little X which in the beginning is
+
+340
+00:12:21,779 --> 00:12:24,180
+just XB uh the tensor of integers
+
+341
+00:12:24,180 --> 00:12:26,040
+specifying the identities of these
+
+342
+00:12:26,040 --> 00:12:27,600
+characters at the input
+
+343
+00:12:27,600 --> 00:12:29,579
+and so these characters can now directly
+
+344
+00:12:29,579 --> 00:12:31,320
+feed into the first layer and this
+
+345
+00:12:31,320 --> 00:12:32,579
+should just work
+
+346
+00:12:32,579 --> 00:12:35,040
+so let me come here and insert a break
+
+347
+00:12:35,040 --> 00:12:36,720
+because I just want to make sure that
+
+348
+00:12:36,720 --> 00:12:38,100
+the first iteration of this runs and
+
+349
+00:12:38,100 --> 00:12:40,440
+then there's no mistake so that ran
+
+350
+00:12:40,440 --> 00:12:42,839
+properly and basically we substantially
+
+351
+00:12:42,839 --> 00:12:45,420
+simplified the forward pass here okay
+
+352
+00:12:45,420 --> 00:12:46,920
+I'm sorry I changed my microphone so
+
+353
+00:12:46,920 --> 00:12:48,420
+hopefully the audio is a little bit
+
+354
+00:12:48,420 --> 00:12:49,500
+better
+
+355
+00:12:49,500 --> 00:12:51,660
+now one more thing that I would like to
+
+356
+00:12:51,660 --> 00:12:53,459
+do in order to pytortify our code even
+
+357
+00:12:53,459 --> 00:12:54,959
+further is that right now we are
+
+358
+00:12:54,959 --> 00:12:56,820
+maintaining all of our modules in a
+
+359
+00:12:56,820 --> 00:12:59,160
+naked list of layers and we can also
+
+360
+00:12:59,160 --> 00:13:01,019
+simplify this uh because we can
+
+361
+00:13:01,019 --> 00:13:03,060
+introduce the concept of Pi torch
+
+362
+00:13:03,060 --> 00:13:05,760
+containers so in tors.nn which we are
+
+363
+00:13:05,760 --> 00:13:07,019
+basically rebuilding from scratch here
+
+364
+00:13:07,019 --> 00:13:09,120
+there's a concept of containers
+
+365
+00:13:09,120 --> 00:13:10,740
+and these containers are basically a way
+
+366
+00:13:10,740 --> 00:13:13,200
+of organizing layers into
+
+367
+00:13:13,200 --> 00:13:16,079
+lists or dicts and so on so in
+
+368
+00:13:16,079 --> 00:13:18,240
+particular there's a sequential which
+
+369
+00:13:18,240 --> 00:13:20,639
+maintains a list of layers and is a
+
+370
+00:13:20,639 --> 00:13:23,700
+module class in pytorch and it basically
+
+371
+00:13:23,700 --> 00:13:25,380
+just passes a given input through all
+
+372
+00:13:25,380 --> 00:13:27,360
+the layers sequentially exactly as we
+
+373
+00:13:27,360 --> 00:13:28,740
+are doing here
+
+374
+00:13:28,740 --> 00:13:31,079
+so let's write our own sequential
+
+375
+00:13:31,079 --> 00:13:33,959
+I've written a code here and basically
+
+376
+00:13:33,959 --> 00:13:35,100
+the code for sequential is quite
+
+377
+00:13:35,100 --> 00:13:37,079
+straightforward we pass in a list of
+
+378
+00:13:37,079 --> 00:13:39,540
+layers which we keep here and then given
+
+379
+00:13:39,540 --> 00:13:41,700
+any input in a forward pass we just call
+
+380
+00:13:41,700 --> 00:13:43,380
+all the layers sequentially and return
+
+381
+00:13:43,380 --> 00:13:45,420
+the result in terms of the parameters
+
+382
+00:13:45,420 --> 00:13:46,680
+it's just all the parameters of the
+
+383
+00:13:46,680 --> 00:13:48,120
+child modules
+
+384
+00:13:48,120 --> 00:13:50,700
+so we can run this and we can again
+
+385
+00:13:50,700 --> 00:13:52,860
+simplify this substantially because we
+
+386
+00:13:52,860 --> 00:13:54,360
+don't maintain this naked list of layers
+
+387
+00:13:54,360 --> 00:13:57,000
+we now have a notion of a model which is
+
+388
+00:13:57,000 --> 00:14:00,360
+a module and in particular is a
+
+389
+00:14:00,360 --> 00:14:04,639
+sequential of all these layers
+
+390
+00:14:04,740 --> 00:14:07,740
+and now parameters are simply just a
+
+391
+00:14:07,740 --> 00:14:09,480
+model about parameters
+
+392
+00:14:09,480 --> 00:14:11,820
+and so that list comprehension now lives
+
+393
+00:14:11,820 --> 00:14:13,800
+here
+
+394
+00:14:13,800 --> 00:14:15,899
+and then here we are press here we are
+
+395
+00:14:15,899 --> 00:14:17,880
+doing all the things we used to do
+
+396
+00:14:17,880 --> 00:14:19,980
+now here the code again simplifies
+
+397
+00:14:19,980 --> 00:14:22,019
+substantially because we don't have to
+
+398
+00:14:22,019 --> 00:14:24,420
+do this forwarding here instead of just
+
+399
+00:14:24,420 --> 00:14:26,399
+call the model on the input data and the
+
+400
+00:14:26,399 --> 00:14:28,079
+input data here are the integers inside
+
+401
+00:14:28,079 --> 00:14:31,620
+xB so we can simply do logits which are
+
+402
+00:14:31,620 --> 00:14:33,779
+the outputs of our model are simply the
+
+403
+00:14:33,779 --> 00:14:36,660
+model called on xB
+
+404
+00:14:36,660 --> 00:14:38,880
+and then the cross entropy here takes
+
+405
+00:14:38,880 --> 00:14:41,279
+the logits and the targets
+
+406
+00:14:41,279 --> 00:14:43,740
+so this simplifies substantially
+
+407
+00:14:43,740 --> 00:14:46,260
+and then this looks good so let's just
+
+408
+00:14:46,260 --> 00:14:49,260
+make sure this runs that looks good
+
+409
+00:14:49,260 --> 00:14:51,420
+now here we actually have some work to
+
+410
+00:14:51,420 --> 00:14:52,800
+do still here but I'm going to come back
+
+411
+00:14:52,800 --> 00:14:54,959
+later for now there's no more layers
+
+412
+00:14:54,959 --> 00:14:57,540
+there's a model that layers but it's not
+
+413
+00:14:57,540 --> 00:15:00,240
+a to access attributes of these classes
+
+414
+00:15:00,240 --> 00:15:01,920
+directly so we'll come back and fix this
+
+415
+00:15:01,920 --> 00:15:03,120
+later
+
+416
+00:15:03,120 --> 00:15:05,100
+and then here of course this simplifies
+
+417
+00:15:05,100 --> 00:15:07,620
+substantially as well because logits are
+
+418
+00:15:07,620 --> 00:15:10,500
+the model called on x
+
+419
+00:15:10,500 --> 00:15:14,100
+and then these low Jets come here
+
+420
+00:15:14,100 --> 00:15:15,899
+so we can evaluate the train and
+
+421
+00:15:15,899 --> 00:15:17,399
+validation loss which currently is
+
+422
+00:15:17,399 --> 00:15:19,199
+terrible because we just initialized the
+
+423
+00:15:19,199 --> 00:15:21,180
+neural net and then we can also sample
+
+424
+00:15:21,180 --> 00:15:22,680
+from the model and this simplifies
+
+425
+00:15:22,680 --> 00:15:24,120
+dramatically as well
+
+426
+00:15:24,120 --> 00:15:25,620
+because we just want to call the model
+
+427
+00:15:25,620 --> 00:15:30,240
+onto the context and outcome logits
+
+428
+00:15:30,240 --> 00:15:32,940
+and these logits go into softmax and get
+
+429
+00:15:32,940 --> 00:15:35,220
+the probabilities Etc so we can sample
+
+430
+00:15:35,220 --> 00:15:37,620
+from this model
+
+431
+00:15:37,620 --> 00:15:41,120
+what did I screw up
+
+432
+00:15:42,300 --> 00:15:44,220
+okay so I fixed the issue and we now get
+
+433
+00:15:44,220 --> 00:15:46,139
+the result that we expect which is
+
+434
+00:15:46,139 --> 00:15:48,120
+gibberish because the model is not
+
+435
+00:15:48,120 --> 00:15:49,860
+trained because we re-initialize it from
+
+436
+00:15:49,860 --> 00:15:50,639
+scratch
+
+437
+00:15:50,639 --> 00:15:52,680
+the problem was that when I fixed this
+
+438
+00:15:52,680 --> 00:15:54,480
+cell to be modeled out layers instead of
+
+439
+00:15:54,480 --> 00:15:56,639
+just layers I did not actually run the
+
+440
+00:15:56,639 --> 00:15:58,920
+cell and so our neural net was in a
+
+441
+00:15:58,920 --> 00:16:01,440
+training mode and what caused the issue
+
+442
+00:16:01,440 --> 00:16:03,000
+here is the bathroom layer as bathroom
+
+443
+00:16:03,000 --> 00:16:05,279
+layer of the likes to do because
+
+444
+00:16:05,279 --> 00:16:07,560
+Bachelor was in a training mode and here
+
+445
+00:16:07,560 --> 00:16:09,839
+we are passing in an input which is a
+
+446
+00:16:09,839 --> 00:16:11,639
+batch of just a single example made up
+
+447
+00:16:11,639 --> 00:16:12,899
+of the context
+
+448
+00:16:12,899 --> 00:16:15,000
+and so if you are trying to pass in a
+
+449
+00:16:15,000 --> 00:16:16,620
+single example into a bash Norm that is
+
+450
+00:16:16,620 --> 00:16:18,060
+in the training mode you're going to end
+
+451
+00:16:18,060 --> 00:16:20,160
+up estimating the variance using the
+
+452
+00:16:20,160 --> 00:16:21,899
+input and the variance of a single
+
+453
+00:16:21,899 --> 00:16:24,540
+number is is not a number because it is
+
+454
+00:16:24,540 --> 00:16:26,880
+a measure of a spread so for example the
+
+455
+00:16:26,880 --> 00:16:28,620
+variance of just the single number five
+
+456
+00:16:28,620 --> 00:16:31,139
+you can see is not a number and so
+
+457
+00:16:31,139 --> 00:16:33,420
+that's what happened in the master
+
+458
+00:16:33,420 --> 00:16:35,519
+basically caused an issue and then that
+
+459
+00:16:35,519 --> 00:16:37,800
+polluted all of the further processing
+
+460
+00:16:37,800 --> 00:16:39,839
+so all that we have to do was make sure
+
+461
+00:16:39,839 --> 00:16:43,259
+that this runs and we basically made the
+
+462
+00:16:43,259 --> 00:16:45,120
+issue of
+
+463
+00:16:45,120 --> 00:16:46,680
+again we didn't actually see the issue
+
+464
+00:16:46,680 --> 00:16:48,420
+with the loss we could have evaluated
+
+465
+00:16:48,420 --> 00:16:49,800
+the loss but we got the wrong result
+
+466
+00:16:49,800 --> 00:16:52,079
+because basharm was in the training mode
+
+467
+00:16:52,079 --> 00:16:54,600
+and uh and so we still get a result it's
+
+468
+00:16:54,600 --> 00:16:56,220
+just the wrong result because it's using
+
+469
+00:16:56,220 --> 00:16:59,220
+the uh sample statistics of the batch
+
+470
+00:16:59,220 --> 00:17:00,660
+whereas we want to use the running mean
+
+471
+00:17:00,660 --> 00:17:02,940
+and running variants inside the bachelor
+
+472
+00:17:02,940 --> 00:17:04,500
+and so
+
+473
+00:17:04,500 --> 00:17:06,199
+again an example of introducing a bug
+
+474
+00:17:06,199 --> 00:17:09,360
+inline because we did not properly
+
+475
+00:17:09,360 --> 00:17:10,919
+maintain the state of what is training
+
+476
+00:17:10,919 --> 00:17:12,959
+or not okay so I Rewritten everything
+
+477
+00:17:12,959 --> 00:17:15,419
+and here's where we are as a reminder we
+
+478
+00:17:15,419 --> 00:17:17,040
+have the training loss of 2.05 and
+
+479
+00:17:17,040 --> 00:17:18,720
+validation 2.10
+
+480
+00:17:18,720 --> 00:17:21,059
+now because these losses are very
+
+481
+00:17:21,059 --> 00:17:22,559
+similar to each other we have a sense
+
+482
+00:17:22,559 --> 00:17:24,419
+that we are not overfitting too much on
+
+483
+00:17:24,419 --> 00:17:26,040
+this task and we can make additional
+
+484
+00:17:26,040 --> 00:17:28,380
+progress in our performance by scaling
+
+485
+00:17:28,380 --> 00:17:29,760
+up the size of the neural network and
+
+486
+00:17:29,760 --> 00:17:32,340
+making everything bigger and deeper
+
+487
+00:17:32,340 --> 00:17:33,960
+now currently we are using this
+
+488
+00:17:33,960 --> 00:17:35,940
+architecture here where we are taking in
+
+489
+00:17:35,940 --> 00:17:37,620
+some number of characters going into a
+
+490
+00:17:37,620 --> 00:17:39,360
+single hidden layer and then going to
+
+491
+00:17:39,360 --> 00:17:41,280
+the prediction of the next character
+
+492
+00:17:41,280 --> 00:17:43,140
+the problem here is we don't have a
+
+493
+00:17:43,140 --> 00:17:46,200
+naive way of making this bigger in a
+
+494
+00:17:46,200 --> 00:17:48,780
+productive way we could of course use
+
+495
+00:17:48,780 --> 00:17:51,059
+our layers sort of building blocks and
+
+496
+00:17:51,059 --> 00:17:53,280
+materials to introduce additional layers
+
+497
+00:17:53,280 --> 00:17:55,500
+here and make the network deeper but it
+
+498
+00:17:55,500 --> 00:17:56,880
+is still the case that we are crushing
+
+499
+00:17:56,880 --> 00:17:58,500
+all of the characters into a single
+
+500
+00:17:58,500 --> 00:18:00,900
+layer all the way at the beginning
+
+501
+00:18:00,900 --> 00:18:02,880
+and even if we make this a bigger layer
+
+502
+00:18:02,880 --> 00:18:04,860
+and add neurons it's still kind of like
+
+503
+00:18:04,860 --> 00:18:07,380
+silly to squash all that information so
+
+504
+00:18:07,380 --> 00:18:09,840
+fast in a single step
+
+505
+00:18:09,840 --> 00:18:11,640
+so we'd like to do instead is we'd like
+
+506
+00:18:11,640 --> 00:18:13,440
+our Network to look a lot more like this
+
+507
+00:18:13,440 --> 00:18:15,660
+in the wavenet case so you see in the
+
+508
+00:18:15,660 --> 00:18:17,340
+wavenet when we are trying to make the
+
+509
+00:18:17,340 --> 00:18:18,660
+prediction for the next character in the
+
+510
+00:18:18,660 --> 00:18:20,820
+sequence it is a function of the
+
+511
+00:18:20,820 --> 00:18:22,320
+previous characters that are feeding
+
+512
+00:18:22,320 --> 00:18:25,140
+that feed in but not all of these
+
+513
+00:18:25,140 --> 00:18:26,460
+different characters are not just
+
+514
+00:18:26,460 --> 00:18:28,320
+crushed to a single layer and then you
+
+515
+00:18:28,320 --> 00:18:31,640
+have a sandwich they are crushed slowly
+
+516
+00:18:31,640 --> 00:18:34,080
+so in particular we take two characters
+
+517
+00:18:34,080 --> 00:18:36,120
+and we fuse them into sort of like a
+
+518
+00:18:36,120 --> 00:18:38,340
+diagram representation and we do that
+
+519
+00:18:38,340 --> 00:18:40,080
+for all these characters consecutively
+
+520
+00:18:40,080 --> 00:18:42,840
+and then we take the bigrams and we fuse
+
+521
+00:18:42,840 --> 00:18:46,679
+those into four character level chunks
+
+522
+00:18:46,679 --> 00:18:49,140
+and then we fuse that again and so we do
+
+523
+00:18:49,140 --> 00:18:51,000
+that in this like tree-like hierarchical
+
+524
+00:18:51,000 --> 00:18:53,520
+manner so we fuse the information from
+
+525
+00:18:53,520 --> 00:18:56,400
+the previous context slowly into the
+
+526
+00:18:56,400 --> 00:18:58,740
+network as it gets deeper and so this is
+
+527
+00:18:58,740 --> 00:18:59,940
+the kind of architecture that we want to
+
+528
+00:18:59,940 --> 00:19:00,780
+implement
+
+529
+00:19:00,780 --> 00:19:02,880
+now in the wave Nets case this is a
+
+530
+00:19:02,880 --> 00:19:04,440
+visualization of a stack of dilated
+
+531
+00:19:04,440 --> 00:19:07,200
+causal convolution layers and this makes
+
+532
+00:19:07,200 --> 00:19:08,820
+it sound very scary but actually the
+
+533
+00:19:08,820 --> 00:19:10,919
+idea is very simple and the fact that
+
+534
+00:19:10,919 --> 00:19:12,780
+it's a dilated causal convolution layer
+
+535
+00:19:12,780 --> 00:19:14,400
+is really just an implementation detail
+
+536
+00:19:14,400 --> 00:19:16,020
+to make everything fast we're going to
+
+537
+00:19:16,020 --> 00:19:18,240
+see that later but for now let's just
+
+538
+00:19:18,240 --> 00:19:20,400
+keep the basic idea of it which is this
+
+539
+00:19:20,400 --> 00:19:22,380
+Progressive Fusion so we want to make
+
+540
+00:19:22,380 --> 00:19:24,539
+the network deeper and at each level we
+
+541
+00:19:24,539 --> 00:19:26,340
+want to fuse only two consecutive
+
+542
+00:19:26,340 --> 00:19:29,220
+elements two characters then two bigrams
+
+543
+00:19:29,220 --> 00:19:32,100
+then two four grams and so on so let's
+
+544
+00:19:32,100 --> 00:19:34,080
+unplant this okay so first up let me
+
+545
+00:19:34,080 --> 00:19:35,520
+scroll to where we built the data set
+
+546
+00:19:35,520 --> 00:19:37,200
+and let's change the block size from 3
+
+547
+00:19:37,200 --> 00:19:39,840
+to 8. so we're going to be taking eight
+
+548
+00:19:39,840 --> 00:19:42,120
+characters of context to predict the
+
+549
+00:19:42,120 --> 00:19:44,100
+ninth character so the data set now
+
+550
+00:19:44,100 --> 00:19:45,840
+looks like this we have a lot more
+
+551
+00:19:45,840 --> 00:19:47,820
+context feeding in to predict any next
+
+552
+00:19:47,820 --> 00:19:49,980
+character in a sequence and these eight
+
+553
+00:19:49,980 --> 00:19:51,480
+characters are going to be processed in
+
+554
+00:19:51,480 --> 00:19:53,460
+this tree like structure
+
+555
+00:19:53,460 --> 00:19:56,039
+now if we scroll here everything here
+
+556
+00:19:56,039 --> 00:19:58,140
+should just be able to work so we should
+
+557
+00:19:58,140 --> 00:19:59,640
+be able to redefine the network
+
+558
+00:19:59,640 --> 00:20:01,260
+you see the number of parameters has
+
+559
+00:20:01,260 --> 00:20:03,620
+increased by 10 000 and that's because
+
+560
+00:20:03,620 --> 00:20:06,120
+the block size has grown so this first
+
+561
+00:20:06,120 --> 00:20:08,220
+linear layer is much much bigger our
+
+562
+00:20:08,220 --> 00:20:10,500
+linear layer now takes eight characters
+
+563
+00:20:10,500 --> 00:20:13,200
+into this middle layer so there's a lot
+
+564
+00:20:13,200 --> 00:20:15,480
+more parameters there but this should
+
+565
+00:20:15,480 --> 00:20:18,240
+just run let me just break right after
+
+566
+00:20:18,240 --> 00:20:20,460
+the very first iteration so you see that
+
+567
+00:20:20,460 --> 00:20:22,440
+this runs just fine it's just that this
+
+568
+00:20:22,440 --> 00:20:23,520
+network doesn't make too much sense
+
+569
+00:20:23,520 --> 00:20:25,080
+we're crushing way too much information
+
+570
+00:20:25,080 --> 00:20:26,940
+way too fast
+
+571
+00:20:26,940 --> 00:20:29,039
+so let's now come in and see how we
+
+572
+00:20:29,039 --> 00:20:30,960
+could try to implement the hierarchical
+
+573
+00:20:30,960 --> 00:20:33,240
+scheme now before we dive into the
+
+574
+00:20:33,240 --> 00:20:35,340
+detail of the re-implementation here I
+
+575
+00:20:35,340 --> 00:20:37,559
+was just curious to actually run it and
+
+576
+00:20:37,559 --> 00:20:38,520
+see where we are in terms of the
+
+577
+00:20:38,520 --> 00:20:40,260
+Baseline performance of just lazily
+
+578
+00:20:40,260 --> 00:20:42,840
+scaling up the context length so I'll
+
+579
+00:20:42,840 --> 00:20:45,120
+let it run we get a nice loss curve and
+
+580
+00:20:45,120 --> 00:20:46,799
+then evaluating the loss we actually see
+
+581
+00:20:46,799 --> 00:20:48,480
+quite a bit of improvement just from
+
+582
+00:20:48,480 --> 00:20:51,240
+increasing the context line length so I
+
+583
+00:20:51,240 --> 00:20:52,320
+started a little bit of a performance
+
+584
+00:20:52,320 --> 00:20:54,780
+log here and previously where we were is
+
+585
+00:20:54,780 --> 00:20:57,840
+we were getting a performance of 2.10 on
+
+586
+00:20:57,840 --> 00:20:59,760
+the validation loss and now simply
+
+587
+00:20:59,760 --> 00:21:01,380
+scaling up the contact length from 3 to
+
+588
+00:21:01,380 --> 00:21:05,400
+8 gives us a performance of 2.02 so
+
+589
+00:21:05,400 --> 00:21:07,260
+quite a bit of an improvement here and
+
+590
+00:21:07,260 --> 00:21:08,820
+also when you sample from the model you
+
+591
+00:21:08,820 --> 00:21:10,200
+see that the names are definitely
+
+592
+00:21:10,200 --> 00:21:13,020
+improving qualitatively as well
+
+593
+00:21:13,020 --> 00:21:14,580
+so we could of course spend a lot of
+
+594
+00:21:14,580 --> 00:21:16,080
+time here tuning
+
+595
+00:21:16,080 --> 00:21:18,000
+um uh tuning things and making it even
+
+596
+00:21:18,000 --> 00:21:19,260
+bigger and scaling up the network
+
+597
+00:21:19,260 --> 00:21:21,600
+further even with the simple
+
+598
+00:21:21,600 --> 00:21:24,360
+um sort of setup here but let's continue
+
+599
+00:21:24,360 --> 00:21:27,179
+and let's Implement here model and treat
+
+600
+00:21:27,179 --> 00:21:28,679
+this as just a rough Baseline
+
+601
+00:21:28,679 --> 00:21:30,720
+performance but there's a lot of
+
+602
+00:21:30,720 --> 00:21:32,940
+optimization like left on the table in
+
+603
+00:21:32,940 --> 00:21:34,260
+terms of some of the hyper parameters
+
+604
+00:21:34,260 --> 00:21:35,820
+that you're hopefully getting a sense of
+
+605
+00:21:35,820 --> 00:21:38,400
+now okay so let's scroll up now
+
+606
+00:21:38,400 --> 00:21:41,100
+and come back up and what I've done here
+
+607
+00:21:41,100 --> 00:21:42,780
+is I've created a bit of a scratch space
+
+608
+00:21:42,780 --> 00:21:45,539
+for us to just like look at the forward
+
+609
+00:21:45,539 --> 00:21:47,880
+pass of the neural net and inspect the
+
+610
+00:21:47,880 --> 00:21:49,799
+shape of the tensor along the way as the
+
+611
+00:21:49,799 --> 00:21:53,280
+neural net uh forwards so here I'm just
+
+612
+00:21:53,280 --> 00:21:55,799
+temporarily for debugging creating a
+
+613
+00:21:55,799 --> 00:21:58,020
+batch of just say four examples so four
+
+614
+00:21:58,020 --> 00:22:00,120
+random integers then I'm plucking out
+
+615
+00:22:00,120 --> 00:22:02,220
+those rows from our training set
+
+616
+00:22:02,220 --> 00:22:04,679
+and then I'm passing into the model the
+
+617
+00:22:04,679 --> 00:22:06,480
+input xB
+
+618
+00:22:06,480 --> 00:22:08,640
+now the shape of XB here because we have
+
+619
+00:22:08,640 --> 00:22:11,280
+only four examples is four by eight and
+
+620
+00:22:11,280 --> 00:22:14,280
+this eight is now the current block size
+
+621
+00:22:14,280 --> 00:22:18,000
+so uh inspecting XP we just see that we
+
+622
+00:22:18,000 --> 00:22:19,860
+have four examples each one of them is a
+
+623
+00:22:19,860 --> 00:22:21,299
+row of xB
+
+624
+00:22:21,299 --> 00:22:24,720
+and we have eight characters here and
+
+625
+00:22:24,720 --> 00:22:26,340
+this integer tensor just contains the
+
+626
+00:22:26,340 --> 00:22:29,299
+identities of those characters
+
+627
+00:22:29,460 --> 00:22:31,200
+so the first layer of our neural net is
+
+628
+00:22:31,200 --> 00:22:33,960
+the embedding layer so passing XB this
+
+629
+00:22:33,960 --> 00:22:35,640
+integer tensor through the embedding
+
+630
+00:22:35,640 --> 00:22:37,679
+layer creates an output that is four by
+
+631
+00:22:37,679 --> 00:22:39,059
+eight by ten
+
+632
+00:22:39,059 --> 00:22:42,720
+so our embedding table has for each
+
+633
+00:22:42,720 --> 00:22:44,760
+character a 10-dimensional vector that
+
+634
+00:22:44,760 --> 00:22:46,020
+we are trying to learn
+
+635
+00:22:46,020 --> 00:22:48,059
+and so what the embedding layer does
+
+636
+00:22:48,059 --> 00:22:50,880
+here is it plucks out the embedding
+
+637
+00:22:50,880 --> 00:22:53,520
+Vector for each one of these integers
+
+638
+00:22:53,520 --> 00:22:56,039
+and organizes it all in a four by eight
+
+639
+00:22:56,039 --> 00:22:58,260
+by ten tensor now
+
+640
+00:22:58,260 --> 00:23:00,299
+so all of these integers are translated
+
+641
+00:23:00,299 --> 00:23:02,460
+into 10 dimensional vectors inside this
+
+642
+00:23:02,460 --> 00:23:04,740
+three-dimensional tensor now
+
+643
+00:23:04,740 --> 00:23:06,539
+passing that through the flattened layer
+
+644
+00:23:06,539 --> 00:23:09,419
+as you recall what this does is it views
+
+645
+00:23:09,419 --> 00:23:12,720
+this tensor as just a 4 by 80 tensor and
+
+646
+00:23:12,720 --> 00:23:15,120
+what that effectively does is that all
+
+647
+00:23:15,120 --> 00:23:16,860
+these 10 dimensional embeddings for all
+
+648
+00:23:16,860 --> 00:23:18,780
+these eight characters just end up being
+
+649
+00:23:18,780 --> 00:23:21,539
+stretched out into a long row
+
+650
+00:23:21,539 --> 00:23:22,860
+and that looks kind of like a
+
+651
+00:23:22,860 --> 00:23:25,620
+concatenation operation basically so by
+
+652
+00:23:25,620 --> 00:23:27,600
+viewing the tensor differently we now
+
+653
+00:23:27,600 --> 00:23:29,940
+have a four by eighty and inside this 80
+
+654
+00:23:29,940 --> 00:23:32,580
+it's all the 10 dimensional uh
+
+655
+00:23:32,580 --> 00:23:35,340
+vectors just uh concatenate next to each
+
+656
+00:23:35,340 --> 00:23:36,120
+other
+
+657
+00:23:36,120 --> 00:23:37,500
+and then the linear layer of course
+
+658
+00:23:37,500 --> 00:23:40,620
+takes uh 80 and creates 200 channels
+
+659
+00:23:40,620 --> 00:23:43,260
+just via matrix multiplication
+
+660
+00:23:43,260 --> 00:23:45,419
+so so far so good now I'd like to show
+
+661
+00:23:45,419 --> 00:23:47,280
+you something surprising
+
+662
+00:23:47,280 --> 00:23:50,340
+let's look at the insides of the linear
+
+663
+00:23:50,340 --> 00:23:52,500
+layer and remind ourselves how it works
+
+664
+00:23:52,500 --> 00:23:54,120
+the linear layer here in the forward
+
+665
+00:23:54,120 --> 00:23:56,820
+pass takes the input X multiplies it
+
+666
+00:23:56,820 --> 00:23:58,740
+with a weight and then optionally adds
+
+667
+00:23:58,740 --> 00:24:00,480
+bias and the weight here is
+
+668
+00:24:00,480 --> 00:24:02,159
+two-dimensional as defined here and the
+
+669
+00:24:02,159 --> 00:24:04,320
+bias is one dimensional here
+
+670
+00:24:04,320 --> 00:24:06,360
+so effectively in terms of the shapes
+
+671
+00:24:06,360 --> 00:24:08,220
+involved what's happening inside this
+
+672
+00:24:08,220 --> 00:24:10,980
+linear layer looks like this right now
+
+673
+00:24:10,980 --> 00:24:12,900
+and I'm using random numbers here but
+
+674
+00:24:12,900 --> 00:24:15,000
+I'm just illustrating the shapes and
+
+675
+00:24:15,000 --> 00:24:16,140
+what happens
+
+676
+00:24:16,140 --> 00:24:18,960
+basically a 4 by 80 input comes into the
+
+677
+00:24:18,960 --> 00:24:20,820
+linear layer that's multiplied by this
+
+678
+00:24:20,820 --> 00:24:23,159
+80 by 200 weight Matrix inside and
+
+679
+00:24:23,159 --> 00:24:25,440
+there's a plus 200 bias and the shape of
+
+680
+00:24:25,440 --> 00:24:26,640
+the whole thing that comes out of the
+
+681
+00:24:26,640 --> 00:24:28,980
+linear layer is four by two hundred as
+
+682
+00:24:28,980 --> 00:24:30,539
+we see here
+
+683
+00:24:30,539 --> 00:24:32,820
+now notice here by the way that this
+
+684
+00:24:32,820 --> 00:24:36,360
+here will create a 4x200 tensor and then
+
+685
+00:24:36,360 --> 00:24:38,159
+plus 200 there's a broadcasting
+
+686
+00:24:38,159 --> 00:24:41,039
+happening here about 4 by 200 broadcasts
+
+687
+00:24:41,039 --> 00:24:44,580
+with 200 uh so everything works here
+
+688
+00:24:44,580 --> 00:24:46,020
+so now the surprising thing that I'd
+
+689
+00:24:46,020 --> 00:24:47,520
+like to show you that you may not expect
+
+690
+00:24:47,520 --> 00:24:49,980
+is that this input here that is being
+
+691
+00:24:49,980 --> 00:24:52,020
+multiplied uh doesn't actually have to
+
+692
+00:24:52,020 --> 00:24:55,140
+be two-dimensional this Matrix multiply
+
+693
+00:24:55,140 --> 00:24:56,880
+operator in pytorch is quite powerful
+
+694
+00:24:56,880 --> 00:24:58,679
+and in fact you can actually pass in
+
+695
+00:24:58,679 --> 00:25:00,840
+higher dimensional arrays or tensors and
+
+696
+00:25:00,840 --> 00:25:02,460
+everything works fine so for example
+
+697
+00:25:02,460 --> 00:25:04,380
+this could be four by five by eighty and
+
+698
+00:25:04,380 --> 00:25:06,240
+the result in that case will become four
+
+699
+00:25:06,240 --> 00:25:08,159
+by five by two hundred
+
+700
+00:25:08,159 --> 00:25:09,900
+you can add as many dimensions as you
+
+701
+00:25:09,900 --> 00:25:11,520
+like on the left here
+
+702
+00:25:11,520 --> 00:25:13,679
+and so effectively what's happening is
+
+703
+00:25:13,679 --> 00:25:15,240
+that the matrix multiplication only
+
+704
+00:25:15,240 --> 00:25:17,760
+works on the last Dimension and the
+
+705
+00:25:17,760 --> 00:25:19,740
+dimensions before it in the input tensor
+
+706
+00:25:19,740 --> 00:25:23,059
+are left unchanged
+
+707
+00:25:24,539 --> 00:25:27,720
+so that is basically these um these
+
+708
+00:25:27,720 --> 00:25:29,220
+dimensions on the left are all treated
+
+709
+00:25:29,220 --> 00:25:32,460
+as just a batch Dimension so we can have
+
+710
+00:25:32,460 --> 00:25:34,740
+multiple batch dimensions and then in
+
+711
+00:25:34,740 --> 00:25:36,659
+parallel over all those Dimensions we
+
+712
+00:25:36,659 --> 00:25:38,039
+are doing the matrix multiplication on
+
+713
+00:25:38,039 --> 00:25:39,360
+the last dimension
+
+714
+00:25:39,360 --> 00:25:41,880
+so this is quite convenient because we
+
+715
+00:25:41,880 --> 00:25:44,220
+can use that in our Network now
+
+716
+00:25:44,220 --> 00:25:46,260
+because remember that we have these
+
+717
+00:25:46,260 --> 00:25:49,080
+eight characters coming in
+
+718
+00:25:49,080 --> 00:25:51,840
+and we don't want to now uh flatten all
+
+719
+00:25:51,840 --> 00:25:53,760
+of it out into a large eight-dimensional
+
+720
+00:25:53,760 --> 00:25:54,960
+vector
+
+721
+00:25:54,960 --> 00:25:57,240
+because we don't want to Matrix multiply
+
+722
+00:25:57,240 --> 00:25:59,460
+80.
+
+723
+00:25:59,460 --> 00:26:01,260
+into a weight Matrix multiply
+
+724
+00:26:01,260 --> 00:26:03,720
+immediately instead we want to group
+
+725
+00:26:03,720 --> 00:26:04,740
+these
+
+726
+00:26:04,740 --> 00:26:06,900
+like this
+
+727
+00:26:06,900 --> 00:26:09,659
+so every consecutive two elements
+
+728
+00:26:09,659 --> 00:26:11,340
+one two and three and four and five and
+
+729
+00:26:11,340 --> 00:26:12,840
+six and seven and eight all of these
+
+730
+00:26:12,840 --> 00:26:14,580
+should be now
+
+731
+00:26:14,580 --> 00:26:17,159
+basically flattened out and multiplied
+
+732
+00:26:17,159 --> 00:26:19,320
+by weight Matrix but all of these four
+
+733
+00:26:19,320 --> 00:26:21,480
+groups here we'd like to process in
+
+734
+00:26:21,480 --> 00:26:23,640
+parallel so it's kind of like a batch
+
+735
+00:26:23,640 --> 00:26:25,860
+Dimension that we can introduce
+
+736
+00:26:25,860 --> 00:26:28,799
+and then we can in parallel basically
+
+737
+00:26:28,799 --> 00:26:33,000
+process all of these uh bigram groups in
+
+738
+00:26:33,000 --> 00:26:34,919
+the four batch dimensions of an
+
+739
+00:26:34,919 --> 00:26:37,200
+individual example and also over the
+
+740
+00:26:37,200 --> 00:26:39,539
+actual batch dimension of the you know
+
+741
+00:26:39,539 --> 00:26:42,059
+four examples in our example here so
+
+742
+00:26:42,059 --> 00:26:43,980
+let's see how that works effectively
+
+743
+00:26:43,980 --> 00:26:46,860
+what we want is right now we take a 4 by
+
+744
+00:26:46,860 --> 00:26:47,640
+80
+
+745
+00:26:47,640 --> 00:26:50,700
+and multiply it by 80 by 200
+
+746
+00:26:50,700 --> 00:26:52,260
+to in the linear layer this is what
+
+747
+00:26:52,260 --> 00:26:53,760
+happens
+
+748
+00:26:53,760 --> 00:26:56,159
+but instead what we want is we don't
+
+749
+00:26:56,159 --> 00:26:58,620
+want 80 characters or 80 numbers to come
+
+750
+00:26:58,620 --> 00:27:00,900
+in we only want two characters to come
+
+751
+00:27:00,900 --> 00:27:02,640
+in on the very first layer and those two
+
+752
+00:27:02,640 --> 00:27:04,799
+characters should be fused
+
+753
+00:27:04,799 --> 00:27:07,500
+so in other words we just want 20 to
+
+754
+00:27:07,500 --> 00:27:11,039
+come in right 20 numbers would come in
+
+755
+00:27:11,039 --> 00:27:13,440
+and here we don't want a 4 by 80 to feed
+
+756
+00:27:13,440 --> 00:27:15,419
+into the linear layer we actually want
+
+757
+00:27:15,419 --> 00:27:17,760
+these groups of two to feed in so
+
+758
+00:27:17,760 --> 00:27:19,260
+instead of four by eighty we want this
+
+759
+00:27:19,260 --> 00:27:23,400
+to be a 4 by 4 by 20.
+
+760
+00:27:23,400 --> 00:27:27,000
+so these are the four groups of two and
+
+761
+00:27:27,000 --> 00:27:28,500
+each one of them is ten dimensional
+
+762
+00:27:28,500 --> 00:27:29,580
+vector
+
+763
+00:27:29,580 --> 00:27:31,559
+so what we want is now is we need to
+
+764
+00:27:31,559 --> 00:27:33,179
+change the flattened layer so it doesn't
+
+765
+00:27:33,179 --> 00:27:35,400
+output a four by eighty but it outputs a
+
+766
+00:27:35,400 --> 00:27:38,100
+four by four by Twenty where basically
+
+767
+00:27:38,100 --> 00:27:39,840
+these um
+
+768
+00:27:39,840 --> 00:27:43,559
+every two consecutive characters are uh
+
+769
+00:27:43,559 --> 00:27:46,500
+packed in on the very last Dimension and
+
+770
+00:27:46,500 --> 00:27:48,120
+then these four is the first batch
+
+771
+00:27:48,120 --> 00:27:50,400
+Dimension and this four is the second
+
+772
+00:27:50,400 --> 00:27:52,620
+batch Dimension referring to the four
+
+773
+00:27:52,620 --> 00:27:54,240
+groups inside every one of these
+
+774
+00:27:54,240 --> 00:27:55,320
+examples
+
+775
+00:27:55,320 --> 00:27:57,600
+and then this will just multiply like
+
+776
+00:27:57,600 --> 00:27:59,520
+this so this is what we want to get to
+
+777
+00:27:59,520 --> 00:28:01,080
+so we're going to have to change the
+
+778
+00:28:01,080 --> 00:28:02,940
+linear layer in terms of how many inputs
+
+779
+00:28:02,940 --> 00:28:05,760
+it expects it shouldn't expect 80 it
+
+780
+00:28:05,760 --> 00:28:07,740
+should just expect 20 numbers and we
+
+781
+00:28:07,740 --> 00:28:09,480
+have to change our flattened layer so it
+
+782
+00:28:09,480 --> 00:28:11,400
+doesn't just fully flatten out this
+
+783
+00:28:11,400 --> 00:28:14,340
+entire example it needs to create a 4x4
+
+784
+00:28:14,340 --> 00:28:17,640
+by 20 instead of four by eighty so let's
+
+785
+00:28:17,640 --> 00:28:19,380
+see how this could be implemented
+
+786
+00:28:19,380 --> 00:28:21,299
+basically right now we have an input
+
+787
+00:28:21,299 --> 00:28:23,640
+that is a four by eight by ten that
+
+788
+00:28:23,640 --> 00:28:25,679
+feeds into the flattened layer and
+
+789
+00:28:25,679 --> 00:28:27,179
+currently the flattened layer just
+
+790
+00:28:27,179 --> 00:28:29,640
+stretches it out so if you remember the
+
+791
+00:28:29,640 --> 00:28:31,500
+implementation of flatten
+
+792
+00:28:31,500 --> 00:28:34,140
+it takes RX and it just views it as
+
+793
+00:28:34,140 --> 00:28:35,820
+whatever the batch Dimension is and then
+
+794
+00:28:35,820 --> 00:28:37,140
+negative one
+
+795
+00:28:37,140 --> 00:28:39,539
+so effectively what it does right now is
+
+796
+00:28:39,539 --> 00:28:42,539
+it does e dot view of 4 negative one and
+
+797
+00:28:42,539 --> 00:28:45,779
+the shape of this of course is 4 by 80.
+
+798
+00:28:45,779 --> 00:28:48,000
+so that's what currently happens and we
+
+799
+00:28:48,000 --> 00:28:49,860
+instead want this to be a four by four
+
+800
+00:28:49,860 --> 00:28:51,720
+by Twenty where these consecutive
+
+801
+00:28:51,720 --> 00:28:54,179
+ten-dimensional vectors get concatenated
+
+802
+00:28:54,179 --> 00:28:57,600
+so you know how in Python you can take a
+
+803
+00:28:57,600 --> 00:29:00,059
+list of range of 10
+
+804
+00:29:00,059 --> 00:29:03,360
+so we have numbers from zero to nine and
+
+805
+00:29:03,360 --> 00:29:05,159
+we can index like this to get all the
+
+806
+00:29:05,159 --> 00:29:06,480
+even parts
+
+807
+00:29:06,480 --> 00:29:08,760
+and we can also index like starting at
+
+808
+00:29:08,760 --> 00:29:11,100
+one and going in steps up two to get all
+
+809
+00:29:11,100 --> 00:29:13,260
+the odd parts
+
+810
+00:29:13,260 --> 00:29:15,480
+so one way to implement this it would be
+
+811
+00:29:15,480 --> 00:29:18,779
+as follows we can take e and we can
+
+812
+00:29:18,779 --> 00:29:21,360
+index into it for all the batch elements
+
+813
+00:29:21,360 --> 00:29:24,179
+and then just even elements in this
+
+814
+00:29:24,179 --> 00:29:29,100
+Dimension so at indexes 0 2 4 and 8.
+
+815
+00:29:29,100 --> 00:29:31,740
+and then all the parts here from this
+
+816
+00:29:31,740 --> 00:29:33,419
+last dimension
+
+817
+00:29:33,419 --> 00:29:37,500
+and this gives us the even characters
+
+818
+00:29:37,500 --> 00:29:39,179
+and then here
+
+819
+00:29:39,179 --> 00:29:42,120
+this gives us all the odd characters and
+
+820
+00:29:42,120 --> 00:29:43,200
+basically what we want to do is we make
+
+821
+00:29:43,200 --> 00:29:44,460
+sure we want to make sure that these get
+
+822
+00:29:44,460 --> 00:29:47,340
+concatenated in pi torch and then we
+
+823
+00:29:47,340 --> 00:29:49,500
+want to concatenate these two tensors
+
+824
+00:29:49,500 --> 00:29:53,159
+along the second dimension
+
+825
+00:29:53,159 --> 00:29:55,500
+so this and the shape of it would be
+
+826
+00:29:55,500 --> 00:29:57,000
+four by four by Twenty this is
+
+827
+00:29:57,000 --> 00:29:58,860
+definitely the result we want we are
+
+828
+00:29:58,860 --> 00:30:01,559
+explicitly grabbing the even parts and
+
+829
+00:30:01,559 --> 00:30:03,659
+the odd parts and we're arranging those
+
+830
+00:30:03,659 --> 00:30:06,480
+four by four by ten right next to each
+
+831
+00:30:06,480 --> 00:30:08,399
+other and concatenate
+
+832
+00:30:08,399 --> 00:30:10,679
+so this works but it turns out that what
+
+833
+00:30:10,679 --> 00:30:13,380
+also works is you can simply use a view
+
+834
+00:30:13,380 --> 00:30:16,260
+again and just request the right shape
+
+835
+00:30:16,260 --> 00:30:18,059
+and it just so happens that in this case
+
+836
+00:30:18,059 --> 00:30:21,240
+those vectors will again end up being
+
+837
+00:30:21,240 --> 00:30:23,460
+arranged in exactly the way we want so
+
+838
+00:30:23,460 --> 00:30:25,320
+in particular if we take e and we just
+
+839
+00:30:25,320 --> 00:30:27,120
+view it as a four by four by Twenty
+
+840
+00:30:27,120 --> 00:30:28,679
+which is what we want
+
+841
+00:30:28,679 --> 00:30:30,659
+we can check that this is exactly equal
+
+842
+00:30:30,659 --> 00:30:33,179
+to but let me call this this is the
+
+843
+00:30:33,179 --> 00:30:36,299
+explicit concatenation I suppose
+
+844
+00:30:36,299 --> 00:30:36,899
+um
+
+845
+00:30:36,899 --> 00:30:40,679
+so explosives dot shape is 4x4 by 20. if
+
+846
+00:30:40,679 --> 00:30:42,779
+you just view it as 4x4 by 20 you can
+
+847
+00:30:42,779 --> 00:30:46,020
+check that when you compare to explicit
+
+848
+00:30:46,020 --> 00:30:48,299
+uh you got a big this is element wise
+
+849
+00:30:48,299 --> 00:30:49,919
+operation so making sure that all of
+
+850
+00:30:49,919 --> 00:30:53,039
+them are true that is the truth so
+
+851
+00:30:53,039 --> 00:30:54,779
+basically long story short we don't need
+
+852
+00:30:54,779 --> 00:30:56,880
+to make an explicit call to concatenate
+
+853
+00:30:56,880 --> 00:31:00,960
+Etc we can simply take this input tensor
+
+854
+00:31:00,960 --> 00:31:03,419
+to flatten and we can just view it in
+
+855
+00:31:03,419 --> 00:31:04,740
+whatever way we want
+
+856
+00:31:04,740 --> 00:31:07,080
+and in particular you don't want to
+
+857
+00:31:07,080 --> 00:31:09,360
+stretch things out with negative one we
+
+858
+00:31:09,360 --> 00:31:10,320
+want to actually create a
+
+859
+00:31:10,320 --> 00:31:12,480
+three-dimensional array and depending on
+
+860
+00:31:12,480 --> 00:31:15,600
+how many vectors that are consecutive we
+
+861
+00:31:15,600 --> 00:31:16,679
+want to
+
+862
+00:31:16,679 --> 00:31:20,399
+um fuse like for example two then we can
+
+863
+00:31:20,399 --> 00:31:21,779
+just simply ask for this Dimension to be
+
+864
+00:31:21,779 --> 00:31:24,179
+20. and um
+
+865
+00:31:24,179 --> 00:31:26,460
+use a negative 1 here and python will
+
+866
+00:31:26,460 --> 00:31:27,840
+figure out how many groups it needs to
+
+867
+00:31:27,840 --> 00:31:29,340
+pack into this additional batch
+
+868
+00:31:29,340 --> 00:31:30,600
+dimension
+
+869
+00:31:30,600 --> 00:31:32,640
+so let's now go into flatten and
+
+870
+00:31:32,640 --> 00:31:34,440
+implement this okay so I scroll up here
+
+871
+00:31:34,440 --> 00:31:36,419
+to flatten and what we'd like to do is
+
+872
+00:31:36,419 --> 00:31:38,580
+we'd like to change it now so let me
+
+873
+00:31:38,580 --> 00:31:40,320
+create a Constructor and take the number
+
+874
+00:31:40,320 --> 00:31:42,659
+of elements that are consecutive that we
+
+875
+00:31:42,659 --> 00:31:44,580
+would like to concatenate now in the
+
+876
+00:31:44,580 --> 00:31:46,799
+last dimension of the output
+
+877
+00:31:46,799 --> 00:31:48,320
+so here we're just going to remember
+
+878
+00:31:48,320 --> 00:31:50,460
+solve.n equals n
+
+879
+00:31:50,460 --> 00:31:52,260
+and then I want to be careful here
+
+880
+00:31:52,260 --> 00:31:54,360
+because pipe pytorch actually has a
+
+881
+00:31:54,360 --> 00:31:56,100
+torch to flatten and its keyword
+
+882
+00:31:56,100 --> 00:31:58,200
+arguments are different and they kind of
+
+883
+00:31:58,200 --> 00:32:00,240
+like function differently so R flatten
+
+884
+00:32:00,240 --> 00:32:02,100
+is going to start to depart from patreon
+
+885
+00:32:02,100 --> 00:32:04,380
+flatten so let me call it flat flatten
+
+886
+00:32:04,380 --> 00:32:06,480
+consecutive or something like that just
+
+887
+00:32:06,480 --> 00:32:08,700
+to make sure that our apis are about
+
+888
+00:32:08,700 --> 00:32:09,779
+equal
+
+889
+00:32:09,779 --> 00:32:13,679
+so this uh basically flattens only some
+
+890
+00:32:13,679 --> 00:32:15,600
+n consecutive elements and puts them
+
+891
+00:32:15,600 --> 00:32:17,580
+into the last dimension
+
+892
+00:32:17,580 --> 00:32:21,480
+now here the shape of X is B by T by C
+
+893
+00:32:21,480 --> 00:32:23,460
+so let me
+
+894
+00:32:23,460 --> 00:32:26,279
+pop those out into variables and recall
+
+895
+00:32:26,279 --> 00:32:28,980
+that in our example down below B was 4 T
+
+896
+00:32:28,980 --> 00:32:32,840
+was 8 and C was 10.
+
+897
+00:32:33,539 --> 00:32:37,080
+now instead of doing x dot view of B by
+
+898
+00:32:37,080 --> 00:32:39,539
+negative one
+
+899
+00:32:39,539 --> 00:32:42,620
+right this is what we had before
+
+900
+00:32:44,220 --> 00:32:47,100
+we want this to be B by
+
+901
+00:32:47,100 --> 00:32:49,679
+um negative 1 by
+
+902
+00:32:49,679 --> 00:32:52,260
+and basically here we want c times n
+
+903
+00:32:52,260 --> 00:32:55,620
+that's how many consecutive elements we
+
+904
+00:32:55,620 --> 00:32:56,880
+want
+
+905
+00:32:56,880 --> 00:32:58,679
+and here instead of negative one I don't
+
+906
+00:32:58,679 --> 00:33:00,120
+super love the use of negative one
+
+907
+00:33:00,120 --> 00:33:02,279
+because I like to be very explicit so
+
+908
+00:33:02,279 --> 00:33:03,600
+that you get error messages when things
+
+909
+00:33:03,600 --> 00:33:04,980
+don't go according to your expectation
+
+910
+00:33:04,980 --> 00:33:07,679
+so what do we expect here we expect this
+
+911
+00:33:07,679 --> 00:33:09,059
+to become t
+
+912
+00:33:09,059 --> 00:33:12,360
+divide n using integer division here
+
+913
+00:33:12,360 --> 00:33:14,519
+so that's what I expect to happen
+
+914
+00:33:14,519 --> 00:33:15,899
+and then one more thing I want to do
+
+915
+00:33:15,899 --> 00:33:18,299
+here is remember previously all the way
+
+916
+00:33:18,299 --> 00:33:21,600
+in the beginning n was three and uh
+
+917
+00:33:21,600 --> 00:33:23,279
+basically we're concatenating
+
+918
+00:33:23,279 --> 00:33:25,320
+um all the three characters that existed
+
+919
+00:33:25,320 --> 00:33:26,279
+there
+
+920
+00:33:26,279 --> 00:33:28,440
+so we basically are concatenated
+
+921
+00:33:28,440 --> 00:33:29,820
+everything
+
+922
+00:33:29,820 --> 00:33:31,740
+and so sometimes I can create a spurious
+
+923
+00:33:31,740 --> 00:33:34,200
+dimension of one here so if it is the
+
+924
+00:33:34,200 --> 00:33:37,200
+case that x dot shape at one is one then
+
+925
+00:33:37,200 --> 00:33:39,840
+it's kind of like a spurious dimension
+
+926
+00:33:39,840 --> 00:33:41,700
+um so we don't want to return a
+
+927
+00:33:41,700 --> 00:33:44,220
+three-dimensional tensor with a one here
+
+928
+00:33:44,220 --> 00:33:46,080
+we just want to return a two-dimensional
+
+929
+00:33:46,080 --> 00:33:48,360
+tensor exactly as we did before
+
+930
+00:33:48,360 --> 00:33:50,700
+so in this case basically we will just
+
+931
+00:33:50,700 --> 00:33:54,240
+say x equals x dot squeeze that is a
+
+932
+00:33:54,240 --> 00:33:56,960
+pytorch function
+
+933
+00:33:56,960 --> 00:34:01,019
+and squeeze takes a dimension that it
+
+934
+00:34:01,019 --> 00:34:02,820
+either squeezes out all the dimensions
+
+935
+00:34:02,820 --> 00:34:05,399
+of a tensor that are one or you can
+
+936
+00:34:05,399 --> 00:34:08,220
+specify the exact Dimension that you
+
+937
+00:34:08,220 --> 00:34:10,500
+want to be squeezed and again I like to
+
+938
+00:34:10,500 --> 00:34:12,720
+be as explicit as possible always so I
+
+939
+00:34:12,720 --> 00:34:13,980
+expect to squeeze out the First
+
+940
+00:34:13,980 --> 00:34:15,480
+Dimension only
+
+941
+00:34:15,480 --> 00:34:17,639
+of this tensor
+
+942
+00:34:17,639 --> 00:34:19,500
+this three-dimensional tensor and if
+
+943
+00:34:19,500 --> 00:34:21,119
+this Dimension here is one then I just
+
+944
+00:34:21,119 --> 00:34:24,240
+want to return B by c times n
+
+945
+00:34:24,240 --> 00:34:26,700
+and so self dot out will be X and then
+
+946
+00:34:26,700 --> 00:34:28,619
+we return salt dot out
+
+947
+00:34:28,619 --> 00:34:30,960
+so that's the candidate implementation
+
+948
+00:34:30,960 --> 00:34:33,060
+and of course this should be self.n
+
+949
+00:34:33,060 --> 00:34:34,980
+instead of just n
+
+950
+00:34:34,980 --> 00:34:36,960
+so let's run
+
+951
+00:34:36,960 --> 00:34:39,060
+and let's come here now
+
+952
+00:34:39,060 --> 00:34:41,399
+and take it for a spin so flatten
+
+953
+00:34:41,399 --> 00:34:44,119
+consecutive
+
+954
+00:34:44,220 --> 00:34:47,040
+and in the beginning let's just use
+
+955
+00:34:47,040 --> 00:34:49,020
+eight so this should recover the
+
+956
+00:34:49,020 --> 00:34:51,119
+previous Behavior so flagging
+
+957
+00:34:51,119 --> 00:34:53,220
+consecutive of eight uh which is the
+
+958
+00:34:53,220 --> 00:34:55,619
+current block size
+
+959
+00:34:55,619 --> 00:34:57,900
+we can do this uh that should recover
+
+960
+00:34:57,900 --> 00:34:59,400
+the previous Behavior
+
+961
+00:34:59,400 --> 00:35:02,640
+so we should be able to run the model
+
+962
+00:35:02,640 --> 00:35:06,060
+and here we can inspect I have a little
+
+963
+00:35:06,060 --> 00:35:08,040
+code snippet here where I iterate over
+
+964
+00:35:08,040 --> 00:35:11,520
+all the layers I print the name of this
+
+965
+00:35:11,520 --> 00:35:14,760
+class and the shape
+
+966
+00:35:14,760 --> 00:35:17,640
+and so we see the shapes as we expect
+
+967
+00:35:17,640 --> 00:35:19,980
+them after every single layer in the top
+
+968
+00:35:19,980 --> 00:35:22,859
+bit so now let's try to restructure it
+
+969
+00:35:22,859 --> 00:35:25,380
+using our flattened consecutive and do
+
+970
+00:35:25,380 --> 00:35:28,320
+it hierarchically so in particular
+
+971
+00:35:28,320 --> 00:35:30,420
+we want to flatten consecutive not just
+
+972
+00:35:30,420 --> 00:35:33,060
+not block size but just two
+
+973
+00:35:33,060 --> 00:35:34,800
+and then we want to process this with
+
+974
+00:35:34,800 --> 00:35:37,140
+linear now then the number of inputs to
+
+975
+00:35:37,140 --> 00:35:38,940
+this linear will not be an embed times
+
+976
+00:35:38,940 --> 00:35:41,040
+block size it will now only be n embed
+
+977
+00:35:41,040 --> 00:35:42,660
+times two
+
+978
+00:35:42,660 --> 00:35:44,280
+20.
+
+979
+00:35:44,280 --> 00:35:46,619
+this goes through the first layer and
+
+980
+00:35:46,619 --> 00:35:48,480
+now we can in principle just copy paste
+
+981
+00:35:48,480 --> 00:35:49,800
+this
+
+982
+00:35:49,800 --> 00:35:51,540
+now the next linear layer should expect
+
+983
+00:35:51,540 --> 00:35:53,940
+and hidden times two
+
+984
+00:35:53,940 --> 00:35:58,680
+and the last piece of it should expect
+
+985
+00:35:58,680 --> 00:36:01,500
+and it enters 2 again
+
+986
+00:36:01,500 --> 00:36:03,240
+so this is sort of like the naive
+
+987
+00:36:03,240 --> 00:36:04,500
+version of it
+
+988
+00:36:04,500 --> 00:36:05,339
+um
+
+989
+00:36:05,339 --> 00:36:07,740
+so running this we now have a much much
+
+990
+00:36:07,740 --> 00:36:09,060
+bigger model
+
+991
+00:36:09,060 --> 00:36:10,740
+and we should be able to basically just
+
+992
+00:36:10,740 --> 00:36:13,440
+forward the model
+
+993
+00:36:13,440 --> 00:36:16,500
+and now we can inspect uh the numbers in
+
+994
+00:36:16,500 --> 00:36:17,700
+between
+
+995
+00:36:17,700 --> 00:36:19,619
+so four byte by 20
+
+996
+00:36:19,619 --> 00:36:21,420
+was Platinum consecutively into four by
+
+997
+00:36:21,420 --> 00:36:23,099
+four by Twenty
+
+998
+00:36:23,099 --> 00:36:24,960
+this was projected into four by four by
+
+999
+00:36:24,960 --> 00:36:26,520
+two hundred
+
+1000
+00:36:26,520 --> 00:36:29,940
+and then bash storm just worked out of
+
+1001
+00:36:29,940 --> 00:36:31,500
+the box we have to verify that bastron
+
+1002
+00:36:31,500 --> 00:36:33,000
+does the correct thing even though it
+
+1003
+00:36:33,000 --> 00:36:34,320
+takes a three-dimensional impedance that
+
+1004
+00:36:34,320 --> 00:36:36,060
+are two dimensional input
+
+1005
+00:36:36,060 --> 00:36:38,520
+then we have 10h which is element wise
+
+1006
+00:36:38,520 --> 00:36:41,460
+then we crushed it again so if we
+
+1007
+00:36:41,460 --> 00:36:42,900
+flatten consecutively and ended up with
+
+1008
+00:36:42,900 --> 00:36:45,119
+a four by two by 400 now
+
+1009
+00:36:45,119 --> 00:36:47,160
+then linear brought it back down to 200
+
+1010
+00:36:47,160 --> 00:36:50,400
+batch room 10h and lastly we get a 4 by
+
+1011
+00:36:50,400 --> 00:36:52,260
+400 and we see that the flattened
+
+1012
+00:36:52,260 --> 00:36:54,720
+consecutive for the last flatten here uh
+
+1013
+00:36:54,720 --> 00:36:57,359
+it squeezed out that dimension of one so
+
+1014
+00:36:57,359 --> 00:36:58,800
+we only ended up with four by four
+
+1015
+00:36:58,800 --> 00:37:00,980
+hundred and then linear Bachelor on 10h
+
+1016
+00:37:00,980 --> 00:37:04,079
+and uh the last linear layer to get our
+
+1017
+00:37:04,079 --> 00:37:06,540
+logents and so The Lodges end up in the
+
+1018
+00:37:06,540 --> 00:37:08,700
+same shape as they were before but now
+
+1019
+00:37:08,700 --> 00:37:10,440
+we actually have a nice three layer
+
+1020
+00:37:10,440 --> 00:37:12,900
+neural nut and it basically corresponds
+
+1021
+00:37:12,900 --> 00:37:15,660
+to whoops sorry it basically corresponds
+
+1022
+00:37:15,660 --> 00:37:18,720
+exactly to this network now except only
+
+1023
+00:37:18,720 --> 00:37:20,099
+this piece here because we only have
+
+1024
+00:37:20,099 --> 00:37:22,140
+three layers whereas here in this
+
+1025
+00:37:22,140 --> 00:37:25,260
+example there's uh four layers with the
+
+1026
+00:37:25,260 --> 00:37:28,079
+total receptive field size of 16
+
+1027
+00:37:28,079 --> 00:37:29,520
+characters instead of just eight
+
+1028
+00:37:29,520 --> 00:37:32,579
+characters so the block size here is 16.
+
+1029
+00:37:32,579 --> 00:37:34,740
+so this piece of it's basically
+
+1030
+00:37:34,740 --> 00:37:36,660
+implemented here
+
+1031
+00:37:36,660 --> 00:37:38,520
+um now we just have to kind of figure
+
+1032
+00:37:38,520 --> 00:37:40,800
+out some good Channel numbers to use
+
+1033
+00:37:40,800 --> 00:37:42,780
+here now in particular I changed the
+
+1034
+00:37:42,780 --> 00:37:45,720
+number of hidden units to be 68 in this
+
+1035
+00:37:45,720 --> 00:37:47,760
+architecture because when I use 68 the
+
+1036
+00:37:47,760 --> 00:37:49,740
+number of parameters comes out to be 22
+
+1037
+00:37:49,740 --> 00:37:52,020
+000 so that's exactly the same that we
+
+1038
+00:37:52,020 --> 00:37:54,119
+had before and we have the same amount
+
+1039
+00:37:54,119 --> 00:37:56,160
+of capacity at this neural net in terms
+
+1040
+00:37:56,160 --> 00:37:57,780
+of the number of parameters but the
+
+1041
+00:37:57,780 --> 00:37:59,160
+question is whether we are utilizing
+
+1042
+00:37:59,160 --> 00:38:00,420
+those parameters in a more efficient
+
+1043
+00:38:00,420 --> 00:38:03,599
+architecture so what I did then is I got
+
+1044
+00:38:03,599 --> 00:38:05,579
+rid of a lot of the debugging cells here
+
+1045
+00:38:05,579 --> 00:38:07,680
+and I rerun the optimization and
+
+1046
+00:38:07,680 --> 00:38:09,839
+scrolling down to the result we see that
+
+1047
+00:38:09,839 --> 00:38:12,420
+we get the identical performance roughly
+
+1048
+00:38:12,420 --> 00:38:15,900
+so our validation loss now is 2.029 and
+
+1049
+00:38:15,900 --> 00:38:18,540
+previously it was 2.027 so controlling
+
+1050
+00:38:18,540 --> 00:38:20,099
+for the number of parameters changing
+
+1051
+00:38:20,099 --> 00:38:21,540
+from the flat to hierarchical is not
+
+1052
+00:38:21,540 --> 00:38:23,400
+giving us anything yet
+
+1053
+00:38:23,400 --> 00:38:25,500
+that said there are two things
+
+1054
+00:38:25,500 --> 00:38:27,660
+um to point out number one we didn't
+
+1055
+00:38:27,660 --> 00:38:29,880
+really torture the um architecture here
+
+1056
+00:38:29,880 --> 00:38:31,200
+very much this is just my first guess
+
+1057
+00:38:31,200 --> 00:38:33,119
+and there's a bunch of hyper parameters
+
+1058
+00:38:33,119 --> 00:38:35,040
+search that we could do in order in
+
+1059
+00:38:35,040 --> 00:38:37,140
+terms of how we allocate uh our budget
+
+1060
+00:38:37,140 --> 00:38:39,780
+of parameters to what layers number two
+
+1061
+00:38:39,780 --> 00:38:42,780
+we still may have a bug inside the
+
+1062
+00:38:42,780 --> 00:38:44,700
+bachelor 1D layer so let's take a look
+
+1063
+00:38:44,700 --> 00:38:45,420
+at
+
+1064
+00:38:45,420 --> 00:38:49,560
+um uh that because it runs but does it
+
+1065
+00:38:49,560 --> 00:38:50,820
+do the right thing
+
+1066
+00:38:50,820 --> 00:38:53,760
+so I pulled up the layer inspector sort
+
+1067
+00:38:53,760 --> 00:38:55,560
+of that we have here and printed out the
+
+1068
+00:38:55,560 --> 00:38:57,180
+shape along the way and currently it
+
+1069
+00:38:57,180 --> 00:38:58,740
+looks like the batch form is receiving
+
+1070
+00:38:58,740 --> 00:39:03,060
+an input that is 32 by 4 by 68 right and
+
+1071
+00:39:03,060 --> 00:39:04,380
+here on the right I have the current
+
+1072
+00:39:04,380 --> 00:39:05,820
+implementation of Bachelor that we have
+
+1073
+00:39:05,820 --> 00:39:06,660
+right now
+
+1074
+00:39:06,660 --> 00:39:09,420
+now this bachelor assumed in the way we
+
+1075
+00:39:09,420 --> 00:39:11,339
+wrote it and at the time that X is
+
+1076
+00:39:11,339 --> 00:39:15,180
+two-dimensional so it was n by D where n
+
+1077
+00:39:15,180 --> 00:39:17,099
+was the batch size so that's why we only
+
+1078
+00:39:17,099 --> 00:39:19,020
+reduced uh the mean and the variance
+
+1079
+00:39:19,020 --> 00:39:21,660
+over the zeroth dimension but now X will
+
+1080
+00:39:21,660 --> 00:39:23,520
+basically become three-dimensional so
+
+1081
+00:39:23,520 --> 00:39:24,540
+what's happening inside the bachelor
+
+1082
+00:39:24,540 --> 00:39:26,460
+right now and how come it's working at
+
+1083
+00:39:26,460 --> 00:39:28,740
+all and not giving any errors the reason
+
+1084
+00:39:28,740 --> 00:39:30,000
+for that is basically because everything
+
+1085
+00:39:30,000 --> 00:39:32,820
+broadcasts properly but the bachelor is
+
+1086
+00:39:32,820 --> 00:39:34,980
+not doing what we need what we wanted to
+
+1087
+00:39:34,980 --> 00:39:35,640
+do
+
+1088
+00:39:35,640 --> 00:39:37,680
+so in particular let's basically think
+
+1089
+00:39:37,680 --> 00:39:38,880
+through what's happening inside the
+
+1090
+00:39:38,880 --> 00:39:41,400
+bathroom uh looking at what's what's do
+
+1091
+00:39:41,400 --> 00:39:43,680
+What's Happening Here
+
+1092
+00:39:43,680 --> 00:39:45,359
+I have the code here
+
+1093
+00:39:45,359 --> 00:39:47,940
+so we're receiving an input of 32 by 4
+
+1094
+00:39:47,940 --> 00:39:52,260
+by 68 and then we are doing uh here x
+
+1095
+00:39:52,260 --> 00:39:54,839
+dot mean here I have e instead of X but
+
+1096
+00:39:54,839 --> 00:39:57,420
+we're doing the mean over zero and
+
+1097
+00:39:57,420 --> 00:39:59,640
+that's actually giving us 1 by 4 by 68.
+
+1098
+00:39:59,640 --> 00:40:01,320
+so we're doing the mean only over the
+
+1099
+00:40:01,320 --> 00:40:03,300
+very first Dimension and it's giving us
+
+1100
+00:40:03,300 --> 00:40:05,040
+a mean and a variance that still
+
+1101
+00:40:05,040 --> 00:40:07,800
+maintain this Dimension here
+
+1102
+00:40:07,800 --> 00:40:10,320
+so these means are only taking over 32
+
+1103
+00:40:10,320 --> 00:40:12,540
+numbers in the First Dimension and then
+
+1104
+00:40:12,540 --> 00:40:14,579
+when we perform this everything
+
+1105
+00:40:14,579 --> 00:40:16,980
+broadcasts correctly still
+
+1106
+00:40:16,980 --> 00:40:20,700
+but basically what ends up happening is
+
+1107
+00:40:20,700 --> 00:40:24,320
+when we also look at the running mean
+
+1108
+00:40:26,160 --> 00:40:27,660
+the shape of it so I'm looking at the
+
+1109
+00:40:27,660 --> 00:40:28,980
+model that layers at three which is the
+
+1110
+00:40:28,980 --> 00:40:30,420
+first bathroom layer and they're looking
+
+1111
+00:40:30,420 --> 00:40:32,760
+at whatever the running mean became and
+
+1112
+00:40:32,760 --> 00:40:34,140
+its shape
+
+1113
+00:40:34,140 --> 00:40:35,940
+the shape of this running mean now is 1
+
+1114
+00:40:35,940 --> 00:40:38,040
+by 4 by 68.
+
+1115
+00:40:38,040 --> 00:40:39,960
+right instead of it being
+
+1116
+00:40:39,960 --> 00:40:43,200
+um you know just a size of dimension
+
+1117
+00:40:43,200 --> 00:40:45,300
+because we have 68 channels we expect to
+
+1118
+00:40:45,300 --> 00:40:47,880
+have 68 means and variances that we're
+
+1119
+00:40:47,880 --> 00:40:49,440
+maintaining but actually we have an
+
+1120
+00:40:49,440 --> 00:40:51,900
+array of 4 by 68 and so basically what
+
+1121
+00:40:51,900 --> 00:40:54,119
+this is telling us is this bash Norm is
+
+1122
+00:40:54,119 --> 00:40:55,320
+only
+
+1123
+00:40:55,320 --> 00:40:57,180
+this bachelor is currently working in
+
+1124
+00:40:57,180 --> 00:40:58,140
+parallel
+
+1125
+00:40:58,140 --> 00:41:00,800
+over
+
+1126
+00:41:01,260 --> 00:41:06,240
+4 times 68 instead of just 68 channels
+
+1127
+00:41:06,240 --> 00:41:08,460
+so basically we are maintaining
+
+1128
+00:41:08,460 --> 00:41:10,740
+statistics for every one of these four
+
+1129
+00:41:10,740 --> 00:41:13,619
+positions individually and independently
+
+1130
+00:41:13,619 --> 00:41:15,240
+and instead what we want to do is we
+
+1131
+00:41:15,240 --> 00:41:16,980
+want to treat this four as a batch
+
+1132
+00:41:16,980 --> 00:41:19,440
+Dimension just like the zeroth dimension
+
+1133
+00:41:19,440 --> 00:41:22,619
+so as far as the bachelor is concerned
+
+1134
+00:41:22,619 --> 00:41:24,839
+it doesn't want to average we don't want
+
+1135
+00:41:24,839 --> 00:41:26,880
+to average over 32 numbers we want to
+
+1136
+00:41:26,880 --> 00:41:29,220
+now average over 32 times four numbers
+
+1137
+00:41:29,220 --> 00:41:31,260
+for every single one of these 68
+
+1138
+00:41:31,260 --> 00:41:32,579
+channels
+
+1139
+00:41:32,579 --> 00:41:34,920
+and uh so let me now
+
+1140
+00:41:34,920 --> 00:41:36,960
+remove this
+
+1141
+00:41:36,960 --> 00:41:38,520
+it turns out that when you look at the
+
+1142
+00:41:38,520 --> 00:41:42,060
+documentation of torch.mean
+
+1143
+00:41:42,060 --> 00:41:45,740
+so let's go to torch.me
+
+1144
+00:41:49,260 --> 00:41:51,660
+in one of its signatures when we specify
+
+1145
+00:41:51,660 --> 00:41:53,160
+the dimension
+
+1146
+00:41:53,160 --> 00:41:54,839
+we see that the dimension here is not
+
+1147
+00:41:54,839 --> 00:41:56,880
+just it can be in or it can also be a
+
+1148
+00:41:56,880 --> 00:41:59,880
+tuple of ins so we can reduce over
+
+1149
+00:41:59,880 --> 00:42:02,099
+multiple integers at the same time over
+
+1150
+00:42:02,099 --> 00:42:04,079
+multiple Dimensions at the same time so
+
+1151
+00:42:04,079 --> 00:42:05,880
+instead of just reducing over zero we
+
+1152
+00:42:05,880 --> 00:42:08,520
+can pass in a tuple 0 1.
+
+1153
+00:42:08,520 --> 00:42:10,800
+and here zero one as well and then
+
+1154
+00:42:10,800 --> 00:42:12,359
+what's going to happen is the output of
+
+1155
+00:42:12,359 --> 00:42:13,800
+course is going to be the same
+
+1156
+00:42:13,800 --> 00:42:15,000
+but now what's going to happen is
+
+1157
+00:42:15,000 --> 00:42:17,640
+because we reduce over 0 and 1 if we
+
+1158
+00:42:17,640 --> 00:42:20,160
+look at immin.shape
+
+1159
+00:42:20,160 --> 00:42:22,859
+we see that now we've reduced we took
+
+1160
+00:42:22,859 --> 00:42:25,260
+the mean over both the zeroth and the
+
+1161
+00:42:25,260 --> 00:42:26,820
+First Dimension
+
+1162
+00:42:26,820 --> 00:42:28,740
+so we're just getting 68 numbers and a
+
+1163
+00:42:28,740 --> 00:42:30,900
+bunch of spurious Dimensions here
+
+1164
+00:42:30,900 --> 00:42:34,079
+so now this becomes 1 by 1 by 68 and the
+
+1165
+00:42:34,079 --> 00:42:35,760
+running mean and the running variance
+
+1166
+00:42:35,760 --> 00:42:37,920
+analogously will become one by one by
+
+1167
+00:42:37,920 --> 00:42:39,720
+68. so even though there are the
+
+1168
+00:42:39,720 --> 00:42:41,820
+spurious Dimensions uh the current the
+
+1169
+00:42:41,820 --> 00:42:43,619
+current the correct thing will happen in
+
+1170
+00:42:43,619 --> 00:42:45,599
+that we are only maintaining means and
+
+1171
+00:42:45,599 --> 00:42:49,260
+variances for 64 sorry for 68 channels
+
+1172
+00:42:49,260 --> 00:42:50,940
+and we're not calculating the mean
+
+1173
+00:42:50,940 --> 00:42:54,420
+variance across 32 times 4 dimensions so
+
+1174
+00:42:54,420 --> 00:42:56,820
+that's exactly what we want and let's
+
+1175
+00:42:56,820 --> 00:42:58,560
+change the implementation of bash term
+
+1176
+00:42:58,560 --> 00:43:01,680
+1D that we have so that it can take in
+
+1177
+00:43:01,680 --> 00:43:02,940
+two-dimensional or three-dimensional
+
+1178
+00:43:02,940 --> 00:43:05,880
+inputs and perform accordingly so at the
+
+1179
+00:43:05,880 --> 00:43:07,020
+end of the day the fix is relatively
+
+1180
+00:43:07,020 --> 00:43:09,180
+straightforward basically the dimension
+
+1181
+00:43:09,180 --> 00:43:12,480
+we want to reduce over is either 0 or
+
+1182
+00:43:12,480 --> 00:43:14,160
+the Tuple zero and one depending on the
+
+1183
+00:43:14,160 --> 00:43:16,920
+dimensionality of X so if x dot and dim
+
+1184
+00:43:16,920 --> 00:43:18,960
+is two so it's a two dimensional tensor
+
+1185
+00:43:18,960 --> 00:43:20,819
+then Dimension we want to reduce over is
+
+1186
+00:43:20,819 --> 00:43:22,380
+just the integer zero
+
+1187
+00:43:22,380 --> 00:43:24,780
+L if x dot ending is three so it's a
+
+1188
+00:43:24,780 --> 00:43:26,640
+three-dimensional tensor then the dims
+
+1189
+00:43:26,640 --> 00:43:29,280
+we're going to assume are zero and one
+
+1190
+00:43:29,280 --> 00:43:31,859
+that we want to reduce over and then
+
+1191
+00:43:31,859 --> 00:43:33,780
+here we just pass in dim
+
+1192
+00:43:33,780 --> 00:43:35,099
+and if the dimensionality of X is
+
+1193
+00:43:35,099 --> 00:43:36,420
+anything else we'll now get an error
+
+1194
+00:43:36,420 --> 00:43:38,700
+which is good
+
+1195
+00:43:38,700 --> 00:43:41,160
+um so that should be the fix now I want
+
+1196
+00:43:41,160 --> 00:43:42,720
+to point out one more thing we're
+
+1197
+00:43:42,720 --> 00:43:44,400
+actually departing from the API of Pi
+
+1198
+00:43:44,400 --> 00:43:46,319
+torch here a little bit because when you
+
+1199
+00:43:46,319 --> 00:43:48,960
+come to batch room 1D and pytorch you
+
+1200
+00:43:48,960 --> 00:43:50,579
+can scroll down and you can see that the
+
+1201
+00:43:50,579 --> 00:43:53,280
+input to this layer can either be n by C
+
+1202
+00:43:53,280 --> 00:43:55,380
+where n is the batch size and C is the
+
+1203
+00:43:55,380 --> 00:43:57,660
+number of features or channels or it
+
+1204
+00:43:57,660 --> 00:43:59,099
+actually does accept three-dimensional
+
+1205
+00:43:59,099 --> 00:44:01,680
+inputs but it expects it to be n by C by
+
+1206
+00:44:01,680 --> 00:44:02,700
+L
+
+1207
+00:44:02,700 --> 00:44:04,740
+where LSA like the sequence length or
+
+1208
+00:44:04,740 --> 00:44:05,940
+something like that
+
+1209
+00:44:05,940 --> 00:44:07,740
+so um
+
+1210
+00:44:07,740 --> 00:44:09,839
+this is problem because you see how C is
+
+1211
+00:44:09,839 --> 00:44:12,660
+nested here in the middle and so when it
+
+1212
+00:44:12,660 --> 00:44:14,819
+gets three-dimensional inputs this bash
+
+1213
+00:44:14,819 --> 00:44:17,339
+term layer will reduce over zero and two
+
+1214
+00:44:17,339 --> 00:44:20,400
+instead of zero and one so it basically
+
+1215
+00:44:20,400 --> 00:44:22,500
+Pi torch batch number one D layer
+
+1216
+00:44:22,500 --> 00:44:25,980
+assumes that c will always be the First
+
+1217
+00:44:25,980 --> 00:44:28,079
+Dimension whereas we'll we assume here
+
+1218
+00:44:28,079 --> 00:44:30,900
+that c is the last Dimension and there
+
+1219
+00:44:30,900 --> 00:44:32,040
+are some number of batch Dimensions
+
+1220
+00:44:32,040 --> 00:44:34,200
+beforehand
+
+1221
+00:44:34,200 --> 00:44:34,859
+um
+
+1222
+00:44:34,859 --> 00:44:36,660
+and so
+
+1223
+00:44:36,660 --> 00:44:39,420
+it expects n by C or M by C by all we
+
+1224
+00:44:39,420 --> 00:44:42,780
+expect and by C or n by L by C
+
+1225
+00:44:42,780 --> 00:44:45,359
+and so it's a deviation
+
+1226
+00:44:45,359 --> 00:44:46,680
+um
+
+1227
+00:44:46,680 --> 00:44:49,020
+I think it's okay I prefer it this way
+
+1228
+00:44:49,020 --> 00:44:50,640
+honestly so this is the way that we will
+
+1229
+00:44:50,640 --> 00:44:52,079
+keep it for our purposes
+
+1230
+00:44:52,079 --> 00:44:54,000
+so I redefined the layers re-initialize
+
+1231
+00:44:54,000 --> 00:44:55,440
+the neural net and did a single forward
+
+1232
+00:44:55,440 --> 00:44:57,780
+pass with a break just for one step
+
+1233
+00:44:57,780 --> 00:44:59,940
+looking at the shapes along the way
+
+1234
+00:44:59,940 --> 00:45:01,500
+they're of course identical all the
+
+1235
+00:45:01,500 --> 00:45:03,300
+shapes are the same but the way we see
+
+1236
+00:45:03,300 --> 00:45:05,099
+that things are actually working as we
+
+1237
+00:45:05,099 --> 00:45:07,020
+want them to now is that when we look at
+
+1238
+00:45:07,020 --> 00:45:08,579
+the bathroom layer the running mean
+
+1239
+00:45:08,579 --> 00:45:11,160
+shape is now one by one by 68. so we're
+
+1240
+00:45:11,160 --> 00:45:13,619
+only maintaining 68 means for every one
+
+1241
+00:45:13,619 --> 00:45:15,660
+of our channels and we're treating both
+
+1242
+00:45:15,660 --> 00:45:17,819
+the zeroth and the First Dimension as a
+
+1243
+00:45:17,819 --> 00:45:19,740
+batch Dimension which is exactly what we
+
+1244
+00:45:19,740 --> 00:45:21,420
+want so let me retrain the neural lot
+
+1245
+00:45:21,420 --> 00:45:22,859
+now okay so I retrained the neural net
+
+1246
+00:45:22,859 --> 00:45:25,140
+with the bug fix we get a nice curve and
+
+1247
+00:45:25,140 --> 00:45:25,980
+when we look at the validation
+
+1248
+00:45:25,980 --> 00:45:27,540
+performance we do actually see a slight
+
+1249
+00:45:27,540 --> 00:45:30,200
+Improvement so we went from 2.029 to
+
+1250
+00:45:30,200 --> 00:45:32,940
+2.022 so basically the bug inside the
+
+1251
+00:45:32,940 --> 00:45:35,280
+bathroom was holding up us back like a
+
+1252
+00:45:35,280 --> 00:45:37,560
+little bit it looks like and we are
+
+1253
+00:45:37,560 --> 00:45:39,060
+getting a tiny Improvement now but it's
+
+1254
+00:45:39,060 --> 00:45:40,079
+not clear if this is statistical
+
+1255
+00:45:40,079 --> 00:45:41,579
+significant
+
+1256
+00:45:41,579 --> 00:45:42,540
+um
+
+1257
+00:45:42,540 --> 00:45:44,520
+and the reason we slightly expect an
+
+1258
+00:45:44,520 --> 00:45:46,079
+improvement is because we're not
+
+1259
+00:45:46,079 --> 00:45:47,579
+maintaining so many different means and
+
+1260
+00:45:47,579 --> 00:45:49,440
+variances that are only estimated using
+
+1261
+00:45:49,440 --> 00:45:52,380
+using 32 numbers effectively now we are
+
+1262
+00:45:52,380 --> 00:45:54,660
+estimating them using 32 times 4 numbers
+
+1263
+00:45:54,660 --> 00:45:56,700
+so you just have a lot more numbers that
+
+1264
+00:45:56,700 --> 00:45:58,560
+go into any one estimate of the mean and
+
+1265
+00:45:58,560 --> 00:46:01,440
+variance and it allows things to be a
+
+1266
+00:46:01,440 --> 00:46:03,180
+bit more stable and less Wiggly inside
+
+1267
+00:46:03,180 --> 00:46:07,020
+those estimates of those statistics so
+
+1268
+00:46:07,020 --> 00:46:08,520
+pretty nice with this more General
+
+1269
+00:46:08,520 --> 00:46:10,319
+architecture in place we are now set up
+
+1270
+00:46:10,319 --> 00:46:12,420
+to push the performance further by
+
+1271
+00:46:12,420 --> 00:46:14,460
+increasing the size of the network so
+
+1272
+00:46:14,460 --> 00:46:16,200
+for example I bumped up the number of
+
+1273
+00:46:16,200 --> 00:46:19,319
+embeddings to 24 instead of 10 and also
+
+1274
+00:46:19,319 --> 00:46:21,060
+increased number of hidden units but
+
+1275
+00:46:21,060 --> 00:46:23,040
+using the exact same architecture we now
+
+1276
+00:46:23,040 --> 00:46:25,980
+have 76 000 parameters and the training
+
+1277
+00:46:25,980 --> 00:46:28,319
+takes a lot longer but we do get a nice
+
+1278
+00:46:28,319 --> 00:46:29,700
+curve and then when you actually
+
+1279
+00:46:29,700 --> 00:46:31,440
+evaluate the performance we are now
+
+1280
+00:46:31,440 --> 00:46:33,480
+getting validation performance of 1.993
+
+1281
+00:46:33,480 --> 00:46:36,960
+so we've crossed over the 2.0 sort of
+
+1282
+00:46:36,960 --> 00:46:39,780
+territory and right about 1.99 but we
+
+1283
+00:46:39,780 --> 00:46:42,180
+are starting to have to wait quite a bit
+
+1284
+00:46:42,180 --> 00:46:44,160
+longer and we're a little bit in the
+
+1285
+00:46:44,160 --> 00:46:46,020
+dark with respect to the correct setting
+
+1286
+00:46:46,020 --> 00:46:47,339
+of the hyper parameters here and the
+
+1287
+00:46:47,339 --> 00:46:48,720
+learning rates and so on because the
+
+1288
+00:46:48,720 --> 00:46:50,099
+experiments are starting to take longer
+
+1289
+00:46:50,099 --> 00:46:52,200
+to train and so we are missing sort of
+
+1290
+00:46:52,200 --> 00:46:54,660
+like an experimental harness on which we
+
+1291
+00:46:54,660 --> 00:46:56,640
+could run a number of experiments and
+
+1292
+00:46:56,640 --> 00:46:58,079
+really tune this architecture very well
+
+1293
+00:46:58,079 --> 00:46:59,880
+so I'd like to conclude now with a few
+
+1294
+00:46:59,880 --> 00:47:02,099
+notes we basically improved our
+
+1295
+00:47:02,099 --> 00:47:04,560
+performance from a starting of 2.1 down
+
+1296
+00:47:04,560 --> 00:47:06,900
+to 1.9 but I don't want that to be the
+
+1297
+00:47:06,900 --> 00:47:08,579
+focus because honestly we're kind of in
+
+1298
+00:47:08,579 --> 00:47:10,200
+the dark we have no experimental harness
+
+1299
+00:47:10,200 --> 00:47:12,300
+we're just guessing and checking and
+
+1300
+00:47:12,300 --> 00:47:13,859
+this whole thing is terrible we're just
+
+1301
+00:47:13,859 --> 00:47:15,480
+looking at the training loss normally
+
+1302
+00:47:15,480 --> 00:47:17,220
+you want to look at both the training
+
+1303
+00:47:17,220 --> 00:47:19,859
+and the validation loss together and the
+
+1304
+00:47:19,859 --> 00:47:20,940
+whole thing looks different if you're
+
+1305
+00:47:20,940 --> 00:47:23,339
+actually trying to squeeze out numbers
+
+1306
+00:47:23,339 --> 00:47:25,920
+that said we did implement this
+
+1307
+00:47:25,920 --> 00:47:28,140
+architecture from the wavenet paper but
+
+1308
+00:47:28,140 --> 00:47:31,440
+we did not implement this specific uh
+
+1309
+00:47:31,440 --> 00:47:33,300
+forward pass of it where you have a more
+
+1310
+00:47:33,300 --> 00:47:35,819
+complicated a linear layer sort of that
+
+1311
+00:47:35,819 --> 00:47:38,579
+is this gated linear layer kind of and
+
+1312
+00:47:38,579 --> 00:47:40,560
+there's residual connections and Skip
+
+1313
+00:47:40,560 --> 00:47:42,119
+connections and so on so we did not
+
+1314
+00:47:42,119 --> 00:47:44,040
+Implement that we just implemented this
+
+1315
+00:47:44,040 --> 00:47:46,500
+structure I would like to briefly hint
+
+1316
+00:47:46,500 --> 00:47:48,359
+or preview how what we've done here
+
+1317
+00:47:48,359 --> 00:47:50,339
+relates to convolutional neural networks
+
+1318
+00:47:50,339 --> 00:47:52,800
+as used in the wavenet paper and
+
+1319
+00:47:52,800 --> 00:47:54,300
+basically the use of convolutions is
+
+1320
+00:47:54,300 --> 00:47:56,339
+strictly for efficiency it doesn't
+
+1321
+00:47:56,339 --> 00:47:57,420
+actually change the model we've
+
+1322
+00:47:57,420 --> 00:47:58,440
+implemented
+
+1323
+00:47:58,440 --> 00:48:00,780
+so here for example
+
+1324
+00:48:00,780 --> 00:48:02,760
+let me look at a specific name to work
+
+1325
+00:48:02,760 --> 00:48:05,339
+with an example so there's a name in our
+
+1326
+00:48:05,339 --> 00:48:08,040
+training set and it's DeAndre and it has
+
+1327
+00:48:08,040 --> 00:48:10,200
+seven letters so that is eight
+
+1328
+00:48:10,200 --> 00:48:12,839
+independent examples in our model so all
+
+1329
+00:48:12,839 --> 00:48:14,700
+these rows here are independent examples
+
+1330
+00:48:14,700 --> 00:48:16,440
+of the Android
+
+1331
+00:48:16,440 --> 00:48:18,720
+now you can forward of course any one of
+
+1332
+00:48:18,720 --> 00:48:20,760
+these rows independently so I can take
+
+1333
+00:48:20,760 --> 00:48:24,540
+my model and call call it on any
+
+1334
+00:48:24,540 --> 00:48:26,700
+individual index notice by the way here
+
+1335
+00:48:26,700 --> 00:48:28,380
+I'm being a little bit tricky
+
+1336
+00:48:28,380 --> 00:48:30,300
+the reason for this is that extra at
+
+1337
+00:48:30,300 --> 00:48:33,180
+seven that shape is just
+
+1338
+00:48:33,180 --> 00:48:36,420
+um one dimensional array of eight so you
+
+1339
+00:48:36,420 --> 00:48:37,980
+can't actually call the model on it
+
+1340
+00:48:37,980 --> 00:48:39,780
+you're going to get an error because
+
+1341
+00:48:39,780 --> 00:48:41,700
+there's no batch dimension
+
+1342
+00:48:41,700 --> 00:48:45,060
+so when you do extra at
+
+1343
+00:48:45,060 --> 00:48:47,880
+a list of seven then the shape of this
+
+1344
+00:48:47,880 --> 00:48:49,740
+becomes one by eight so I get an extra
+
+1345
+00:48:49,740 --> 00:48:52,020
+batch dimension of one and then we can
+
+1346
+00:48:52,020 --> 00:48:53,460
+forward the model
+
+1347
+00:48:53,460 --> 00:48:55,200
+so
+
+1348
+00:48:55,200 --> 00:48:57,780
+that forwards a single example and you
+
+1349
+00:48:57,780 --> 00:48:59,040
+might imagine that you actually may want
+
+1350
+00:48:59,040 --> 00:49:01,680
+to forward all of these eight
+
+1351
+00:49:01,680 --> 00:49:03,240
+um at the same time
+
+1352
+00:49:03,240 --> 00:49:05,700
+so pre-allocating some memory and then
+
+1353
+00:49:05,700 --> 00:49:07,560
+doing a for Loop eight times and
+
+1354
+00:49:07,560 --> 00:49:10,260
+forwarding all of those eight here will
+
+1355
+00:49:10,260 --> 00:49:11,819
+give us all the logits in all these
+
+1356
+00:49:11,819 --> 00:49:13,140
+different cases
+
+1357
+00:49:13,140 --> 00:49:14,819
+now for us with the model as we've
+
+1358
+00:49:14,819 --> 00:49:16,500
+implemented it right now this is eight
+
+1359
+00:49:16,500 --> 00:49:18,359
+independent calls to our model
+
+1360
+00:49:18,359 --> 00:49:20,760
+but what convolutions allow you to do is
+
+1361
+00:49:20,760 --> 00:49:22,740
+it allow you to basically slide this
+
+1362
+00:49:22,740 --> 00:49:24,780
+model efficiently over the input
+
+1363
+00:49:24,780 --> 00:49:27,780
+sequence and so this for Loop can be
+
+1364
+00:49:27,780 --> 00:49:31,079
+done not outside in Python but inside of
+
+1365
+00:49:31,079 --> 00:49:33,720
+kernels in Cuda and so this for Loop
+
+1366
+00:49:33,720 --> 00:49:35,700
+gets hidden into the convolution
+
+1367
+00:49:35,700 --> 00:49:37,500
+so the convolution basically you can
+
+1368
+00:49:37,500 --> 00:49:40,140
+cover this it's a for Loop applying a
+
+1369
+00:49:40,140 --> 00:49:43,079
+little linear filter over space of some
+
+1370
+00:49:43,079 --> 00:49:45,300
+input sequence and in our case the space
+
+1371
+00:49:45,300 --> 00:49:46,560
+we're interested in is one dimensional
+
+1372
+00:49:46,560 --> 00:49:48,180
+and we're interested in sliding these
+
+1373
+00:49:48,180 --> 00:49:51,079
+filters over the input data
+
+1374
+00:49:51,079 --> 00:49:54,359
+so this diagram actually is fairly good
+
+1375
+00:49:54,359 --> 00:49:55,440
+as well
+
+1376
+00:49:55,440 --> 00:49:57,180
+basically what we've done is here they
+
+1377
+00:49:57,180 --> 00:49:59,280
+are highlighting in Black one individ
+
+1378
+00:49:59,280 --> 00:50:01,440
+one single sort of like tree of this
+
+1379
+00:50:01,440 --> 00:50:03,660
+calculation so just calculating the
+
+1380
+00:50:03,660 --> 00:50:06,000
+single output example here
+
+1381
+00:50:06,000 --> 00:50:07,140
+um
+
+1382
+00:50:07,140 --> 00:50:08,819
+and so this is basically what we've
+
+1383
+00:50:08,819 --> 00:50:10,920
+implemented here we've implemented a
+
+1384
+00:50:10,920 --> 00:50:13,500
+single this black structure we've
+
+1385
+00:50:13,500 --> 00:50:15,480
+implemented that and calculated a single
+
+1386
+00:50:15,480 --> 00:50:17,579
+output like a single example
+
+1387
+00:50:17,579 --> 00:50:19,140
+but what collusions allow you to do is
+
+1388
+00:50:19,140 --> 00:50:20,819
+it allows you to take this black
+
+1389
+00:50:20,819 --> 00:50:23,579
+structure and kind of like slide it over
+
+1390
+00:50:23,579 --> 00:50:26,280
+the input sequence here and calculate
+
+1391
+00:50:26,280 --> 00:50:29,579
+all of these orange outputs at the same
+
+1392
+00:50:29,579 --> 00:50:31,740
+time or here that corresponds to
+
+1393
+00:50:31,740 --> 00:50:34,859
+calculating all of these outputs of
+
+1394
+00:50:34,859 --> 00:50:37,200
+um at all the positions of DeAndre at
+
+1395
+00:50:37,200 --> 00:50:38,579
+the same time
+
+1396
+00:50:38,579 --> 00:50:41,040
+and the reason that this is much more
+
+1397
+00:50:41,040 --> 00:50:43,200
+efficient is because number one as I
+
+1398
+00:50:43,200 --> 00:50:45,000
+mentioned the for Loop is inside the
+
+1399
+00:50:45,000 --> 00:50:48,300
+Cuda kernels in the sliding so that
+
+1400
+00:50:48,300 --> 00:50:50,400
+makes it efficient but number two notice
+
+1401
+00:50:50,400 --> 00:50:52,440
+the variable reuse here for example if
+
+1402
+00:50:52,440 --> 00:50:54,059
+we look at this circle this node here
+
+1403
+00:50:54,059 --> 00:50:56,819
+this node here is the right child of
+
+1404
+00:50:56,819 --> 00:50:59,700
+this node but is also the left child of
+
+1405
+00:50:59,700 --> 00:51:01,079
+the node here
+
+1406
+00:51:01,079 --> 00:51:03,359
+and so basically this node and its value
+
+1407
+00:51:03,359 --> 00:51:05,520
+is used twice
+
+1408
+00:51:05,520 --> 00:51:08,579
+and so right now in this naive way we'd
+
+1409
+00:51:08,579 --> 00:51:11,160
+have to recalculate it but here we are
+
+1410
+00:51:11,160 --> 00:51:12,660
+allowed to reuse it
+
+1411
+00:51:12,660 --> 00:51:14,099
+so in the convolutional neural network
+
+1412
+00:51:14,099 --> 00:51:16,200
+you think of these linear layers that we
+
+1413
+00:51:16,200 --> 00:51:19,319
+have up above as filters and we take
+
+1414
+00:51:19,319 --> 00:51:21,300
+these filters and they're linear filters
+
+1415
+00:51:21,300 --> 00:51:23,099
+and you slide them over input sequence
+
+1416
+00:51:23,099 --> 00:51:25,319
+and we calculate the first layer and
+
+1417
+00:51:25,319 --> 00:51:26,940
+then the second layer and then the third
+
+1418
+00:51:26,940 --> 00:51:28,619
+layer and then the output layer of the
+
+1419
+00:51:28,619 --> 00:51:30,240
+sandwich and it's all done very
+
+1420
+00:51:30,240 --> 00:51:32,700
+efficiently using these convolutions
+
+1421
+00:51:32,700 --> 00:51:34,140
+so we're going to cover that in a future
+
+1422
+00:51:34,140 --> 00:51:35,819
+video the second thing I hope you took
+
+1423
+00:51:35,819 --> 00:51:37,800
+away from this video is you've seen me
+
+1424
+00:51:37,800 --> 00:51:40,380
+basically Implement all of these layer
+
+1425
+00:51:40,380 --> 00:51:42,839
+Lego building blocks or module building
+
+1426
+00:51:42,839 --> 00:51:45,180
+blocks and I'm implementing them over
+
+1427
+00:51:45,180 --> 00:51:46,800
+here and we've implemented a number of
+
+1428
+00:51:46,800 --> 00:51:48,420
+layers together and we've also
+
+1429
+00:51:48,420 --> 00:51:51,059
+implemented these these containers and
+
+1430
+00:51:51,059 --> 00:51:53,460
+we've overall pytorchified our code
+
+1431
+00:51:53,460 --> 00:51:54,839
+quite a bit more
+
+1432
+00:51:54,839 --> 00:51:56,880
+now basically what we're doing here is
+
+1433
+00:51:56,880 --> 00:51:59,220
+we're re-implementing torch.nn which is
+
+1434
+00:51:59,220 --> 00:52:02,359
+the neural networks library on top of
+
+1435
+00:52:02,359 --> 00:52:04,619
+torch.tensor and it looks very much like
+
+1436
+00:52:04,619 --> 00:52:07,020
+this except it is much better because
+
+1437
+00:52:07,020 --> 00:52:08,940
+because it's in pi torch instead of
+
+1438
+00:52:08,940 --> 00:52:11,579
+jingling my Jupiter notebook so I think
+
+1439
+00:52:11,579 --> 00:52:13,319
+going forward I will probably have
+
+1440
+00:52:13,319 --> 00:52:15,660
+considered us having unlocked
+
+1441
+00:52:15,660 --> 00:52:18,059
+um torch.nn we understand roughly what's
+
+1442
+00:52:18,059 --> 00:52:19,740
+in there how these modules work how
+
+1443
+00:52:19,740 --> 00:52:21,960
+they're nested and what they're doing on
+
+1444
+00:52:21,960 --> 00:52:24,000
+top of torture tensor so hopefully we'll
+
+1445
+00:52:24,000 --> 00:52:25,980
+just uh we'll just switch over and
+
+1446
+00:52:25,980 --> 00:52:27,660
+continue and start using torch.net
+
+1447
+00:52:27,660 --> 00:52:29,400
+directly the next thing I hope you got a
+
+1448
+00:52:29,400 --> 00:52:31,260
+bit of a sense of is what the
+
+1449
+00:52:31,260 --> 00:52:33,240
+development process of building deep
+
+1450
+00:52:33,240 --> 00:52:35,099
+neural networks looks like which I think
+
+1451
+00:52:35,099 --> 00:52:36,780
+was relatively representative to some
+
+1452
+00:52:36,780 --> 00:52:39,660
+extent so number one we are spending a
+
+1453
+00:52:39,660 --> 00:52:41,520
+lot of time in the documentation page of
+
+1454
+00:52:41,520 --> 00:52:44,040
+pytorch and we're reading through all
+
+1455
+00:52:44,040 --> 00:52:45,500
+the layers looking at documentations
+
+1456
+00:52:45,500 --> 00:52:48,240
+where the shapes of the inputs what can
+
+1457
+00:52:48,240 --> 00:52:51,319
+they be what does the layer do and so on
+
+1458
+00:52:51,319 --> 00:52:53,040
+unfortunately I have to say the
+
+1459
+00:52:53,040 --> 00:52:55,559
+patreon's documentation is not are very
+
+1460
+00:52:55,559 --> 00:52:57,960
+good they spend a ton of time on
+
+1461
+00:52:57,960 --> 00:52:59,579
+Hardcore engineering of all kinds of
+
+1462
+00:52:59,579 --> 00:53:01,680
+distributed Primitives Etc but as far as
+
+1463
+00:53:01,680 --> 00:53:03,359
+I can tell no one is maintaining any
+
+1464
+00:53:03,359 --> 00:53:06,420
+documentation it will lie to you it will
+
+1465
+00:53:06,420 --> 00:53:08,940
+be wrong it will be incomplete it will
+
+1466
+00:53:08,940 --> 00:53:12,000
+be unclear so unfortunately it is what
+
+1467
+00:53:12,000 --> 00:53:14,700
+it is and you just kind of do your best
+
+1468
+00:53:14,700 --> 00:53:18,000
+um with what they've given us
+
+1469
+00:53:18,000 --> 00:53:20,700
+um number two
+
+1470
+00:53:20,700 --> 00:53:22,380
+uh the other thing that I hope you got a
+
+1471
+00:53:22,380 --> 00:53:24,599
+sense of is there's a ton of trying to
+
+1472
+00:53:24,599 --> 00:53:26,520
+make the shapes work and there's a lot
+
+1473
+00:53:26,520 --> 00:53:27,660
+of gymnastics around these
+
+1474
+00:53:27,660 --> 00:53:29,220
+multi-dimensional arrays and are they
+
+1475
+00:53:29,220 --> 00:53:30,420
+two-dimensional three-dimensional
+
+1476
+00:53:30,420 --> 00:53:32,520
+four-dimensional uh what layers take
+
+1477
+00:53:32,520 --> 00:53:36,180
+what shapes is it NCL or NLC and you're
+
+1478
+00:53:36,180 --> 00:53:39,000
+promoting and viewing and it just can
+
+1479
+00:53:39,000 --> 00:53:40,980
+get pretty messy and so that brings me
+
+1480
+00:53:40,980 --> 00:53:43,559
+to number three I very often prototype
+
+1481
+00:53:43,559 --> 00:53:44,940
+these layers and implementations in
+
+1482
+00:53:44,940 --> 00:53:46,559
+jupyter notebooks and make sure that all
+
+1483
+00:53:46,559 --> 00:53:48,720
+the shapes work out and I'm spending a
+
+1484
+00:53:48,720 --> 00:53:50,819
+lot of time basically babysitting the
+
+1485
+00:53:50,819 --> 00:53:52,140
+shapes and making sure everything is
+
+1486
+00:53:52,140 --> 00:53:54,300
+correct and then once I'm satisfied with
+
+1487
+00:53:54,300 --> 00:53:55,380
+the functionality in the Jupiter
+
+1488
+00:53:55,380 --> 00:53:57,300
+notebook I will take that code and copy
+
+1489
+00:53:57,300 --> 00:53:59,579
+paste it into my repository of actual
+
+1490
+00:53:59,579 --> 00:54:02,400
+code that I'm training with and so then
+
+1491
+00:54:02,400 --> 00:54:04,559
+I'm working with vs code on the side so
+
+1492
+00:54:04,559 --> 00:54:06,059
+I usually have jupyter notebook and vs
+
+1493
+00:54:06,059 --> 00:54:07,859
+code I develop in Jupiter notebook I
+
+1494
+00:54:07,859 --> 00:54:09,660
+paste into vs code and then I kick off
+
+1495
+00:54:09,660 --> 00:54:11,640
+experiments from from the reaper of
+
+1496
+00:54:11,640 --> 00:54:14,579
+course from the code repository so
+
+1497
+00:54:14,579 --> 00:54:16,200
+that's roughly some notes on the
+
+1498
+00:54:16,200 --> 00:54:17,460
+development process of working with
+
+1499
+00:54:17,460 --> 00:54:19,380
+neurons lastly I think this lecture
+
+1500
+00:54:19,380 --> 00:54:21,540
+unlocks a lot of potential further
+
+1501
+00:54:21,540 --> 00:54:23,640
+lectures because number one we have to
+
+1502
+00:54:23,640 --> 00:54:25,079
+convert our neural network to actually
+
+1503
+00:54:25,079 --> 00:54:27,119
+use these dilated causal convolutional
+
+1504
+00:54:27,119 --> 00:54:30,780
+layers so implementing the comnet number
+
+1505
+00:54:30,780 --> 00:54:32,780
+two potentially starting to get into
+
+1506
+00:54:32,780 --> 00:54:34,920
+what this means whatever residual
+
+1507
+00:54:34,920 --> 00:54:36,300
+connections and Skip connections and why
+
+1508
+00:54:36,300 --> 00:54:37,920
+are they useful
+
+1509
+00:54:37,920 --> 00:54:40,800
+number three we as I mentioned we don't
+
+1510
+00:54:40,800 --> 00:54:42,900
+have any experimental harness so right
+
+1511
+00:54:42,900 --> 00:54:44,040
+now I'm just guessing checking
+
+1512
+00:54:44,040 --> 00:54:45,720
+everything this is not representative of
+
+1513
+00:54:45,720 --> 00:54:47,700
+typical deep learning workflows you have
+
+1514
+00:54:47,700 --> 00:54:49,920
+to set up your evaluation harness you
+
+1515
+00:54:49,920 --> 00:54:51,660
+can kick off experiments you have lots
+
+1516
+00:54:51,660 --> 00:54:53,099
+of arguments that your script can take
+
+1517
+00:54:53,099 --> 00:54:54,839
+you're you're kicking off a lot of
+
+1518
+00:54:54,839 --> 00:54:56,339
+experimentation you're looking at a lot
+
+1519
+00:54:56,339 --> 00:54:57,720
+of plots of training and validation
+
+1520
+00:54:57,720 --> 00:54:59,640
+losses and you're looking at what is
+
+1521
+00:54:59,640 --> 00:55:01,200
+working and what is not working and
+
+1522
+00:55:01,200 --> 00:55:02,339
+you're working on this like population
+
+1523
+00:55:02,339 --> 00:55:04,319
+level and you're doing all these hyper
+
+1524
+00:55:04,319 --> 00:55:06,359
+parameter searches and so we've done
+
+1525
+00:55:06,359 --> 00:55:09,599
+none of that so far so how to set that
+
+1526
+00:55:09,599 --> 00:55:11,940
+up and how to make it good I think as a
+
+1527
+00:55:11,940 --> 00:55:14,880
+whole another topic number three we
+
+1528
+00:55:14,880 --> 00:55:16,260
+should probably cover recurring neural
+
+1529
+00:55:16,260 --> 00:55:19,079
+networks RNs lstm's grooves and of
+
+1530
+00:55:19,079 --> 00:55:22,680
+course Transformers so many uh places to
+
+1531
+00:55:22,680 --> 00:55:24,900
+go and we'll cover that in the future
+
+1532
+00:55:24,900 --> 00:55:27,839
+for now bye sorry I forgot to say that
+
+1533
+00:55:27,839 --> 00:55:30,119
+if you are interested I think it is kind
+
+1534
+00:55:30,119 --> 00:55:31,619
+of interesting to try to beat this
+
+1535
+00:55:31,619 --> 00:55:34,319
+number 1.993 because I really haven't
+
+1536
+00:55:34,319 --> 00:55:36,240
+tried a lot of experimentation here and
+
+1537
+00:55:36,240 --> 00:55:37,920
+there's quite a bit of fruit potentially
+
+1538
+00:55:37,920 --> 00:55:40,619
+to still purchase further so I haven't
+
+1539
+00:55:40,619 --> 00:55:42,900
+tried any other ways of allocating these
+
+1540
+00:55:42,900 --> 00:55:44,940
+channels in this neural net maybe the
+
+1541
+00:55:44,940 --> 00:55:47,339
+number of dimensions for the embedding
+
+1542
+00:55:47,339 --> 00:55:49,559
+is all wrong maybe it's possible to
+
+1543
+00:55:49,559 --> 00:55:50,940
+actually take the original network with
+
+1544
+00:55:50,940 --> 00:55:53,160
+just one hidden layer and make it big
+
+1545
+00:55:53,160 --> 00:55:54,660
+enough and actually beat my fancy
+
+1546
+00:55:54,660 --> 00:55:56,900
+hierarchical Network it's not obvious
+
+1547
+00:55:56,900 --> 00:55:59,460
+that would be kind of embarrassing if
+
+1548
+00:55:59,460 --> 00:56:01,319
+this did not do better even once you
+
+1549
+00:56:01,319 --> 00:56:03,480
+torture it a little bit maybe you can
+
+1550
+00:56:03,480 --> 00:56:04,740
+read the weight net paper and try to
+
+1551
+00:56:04,740 --> 00:56:06,059
+figure out how some of these layers work
+
+1552
+00:56:06,059 --> 00:56:07,740
+and Implement them yourselves using what
+
+1553
+00:56:07,740 --> 00:56:08,880
+we have
+
+1554
+00:56:08,880 --> 00:56:10,619
+and of course you can always tune some
+
+1555
+00:56:10,619 --> 00:56:12,599
+of the initialization or some of the
+
+1556
+00:56:12,599 --> 00:56:15,059
+optimization and see if you can improve
+
+1557
+00:56:15,059 --> 00:56:16,859
+it that way so I'd be curious if people
+
+1558
+00:56:16,859 --> 00:56:18,859
+can come up with some ways to beat this
+
+1559
+00:56:18,859 --> 00:56:22,880
+and yeah that's it for now bye

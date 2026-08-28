@@ -11,6 +11,7 @@ script, i dati e la trascrizione della lezione da cui e' ricavato (i file
 | [`02_bigram/`](02_bigram) | [building makemore](https://www.youtube.com/watch?v=PaCmpygFfXo) | modello di linguaggio bigram a livello di carattere |
 | [`03_mlp/`](03_mlp) | [building makemore part 2: MLP](https://www.youtube.com/watch?v=TCH_1BHY58I) | MLP alla Bengio 2003, embedding imparati, minibatch, split train/dev/test |
 | [`03_mlp/`](03_mlp) | [building makemore part 3: activations & gradients, batchnorm](https://www.youtube.com/watch?v=P6sfmUTpUmc) | inizializzazione, tanh satura, Kaiming, batch normalization |
+| [`04_wavenet/`](04_wavenet) | [building makemore part 5: building a WaveNet](https://www.youtube.com/watch?v=t3YJ5hKiMQ0) | contesto piu' lungo, fusione gerarchica del contesto, batchnorm su tensori a 3 assi |
 
 ## Come si lancia
 
@@ -30,6 +31,7 @@ uv run 03_mlp/07_gain_depth.py       # perche' il gain della tanh e' 5/3
 uv run 03_mlp/08_gain_gradients.py   # ...e cosa succede ai gradienti
 uv run 03_mlp/09_learning_speed.py     # quanto si spostano i pesi: update:data
 uv run 03_mlp/10_batchnorm_robustness.py   # cosa resta da calibrare con la batchnorm
+uv run 04_wavenet/01_wavenet.py      # lezione 5: la MLP che diventa un albero
 ```
 
 Gli script si possono lanciare da qualsiasi directory: i percorsi dei file sono
