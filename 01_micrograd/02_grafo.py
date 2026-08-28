@@ -59,8 +59,8 @@ e = a * b
 e.label = "e"
 d = e + c
 d.label = "d"
-ff = Value(-2.0, label="f")
-L = d * ff
+f_val = Value(-2.0, label="f")
+L = d * f_val
 L.label = "L"
 
 print(f"  forward pass: L = {L.data}\n")
@@ -82,8 +82,8 @@ def forward_L(a, b, c, f):
 L.grad = 1.0
 
 # L = d * f, e la derivata di un prodotto rispetto a un fattore e' l'altro
-ff.grad = d.data  # dL/df = d
-d.grad = ff.data  # dL/dd = f
+f_val.grad = d.data  # dL/df = d
+d.grad = f_val.data  # dL/dd = f
 
 # Qui c'e' il nocciolo di tutto. Il nodo '+' che ha prodotto d non sa niente del
 # resto del grafo: sa solo che ha sommato c ed e, quindi la sua derivata locale
@@ -107,10 +107,10 @@ b.grad = e.grad * a.data
 
 print("  gradienti calcolati a mano, verificati contro la stima numerica:")
 for name, node, numeric in [
-    ("a", a, numerical_derivative(lambda v: forward_L(v, b.data, c.data, ff.data), a.data)),
-    ("b", b, numerical_derivative(lambda v: forward_L(a.data, v, c.data, ff.data), b.data)),
-    ("c", c, numerical_derivative(lambda v: forward_L(a.data, b.data, v, ff.data), c.data)),
-    ("f", ff, numerical_derivative(lambda v: forward_L(a.data, b.data, c.data, v), ff.data)),
+    ("a", a, numerical_derivative(lambda v: forward_L(v, b.data, c.data, f_val.data), a.data)),
+    ("b", b, numerical_derivative(lambda v: forward_L(a.data, v, c.data, f_val.data), b.data)),
+    ("c", c, numerical_derivative(lambda v: forward_L(a.data, b.data, v, f_val.data), c.data)),
+    ("f", f_val, numerical_derivative(lambda v: forward_L(a.data, b.data, c.data, v), f_val.data)),
 ]:
     print(f"    dL/d{name}: a mano {node.grad:+.4f}   numerico {numeric:+.4f}")
 
@@ -129,7 +129,7 @@ print("\n=== un passo nella direzione del gradiente ===\n")
 # Nella tappa 6 faremo esattamente questo, ma col segno girato per far scendere
 # una loss invece che salire una L.
 step = 0.01
-nudged = [n.data + step * n.grad for n in (a, b, c, ff)]
+nudged = [n.data + step * n.grad for n in (a, b, c, f_val)]
 print(f"  L prima: {L.data:.4f}")
 print(f"  L dopo un passo di {step}: {forward_L(*nudged):.4f}")
 

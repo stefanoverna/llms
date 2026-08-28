@@ -98,8 +98,8 @@ e = a * b
 e.label = "e"
 d = e + c
 d.label = "d"
-ff = Value(-2.0, label="f")
-L = d * ff
+f_val = Value(-2.0, label="f")
+L = d * f_val
 L.label = "L"
 
 L.backward()

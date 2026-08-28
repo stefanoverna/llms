@@ -27,7 +27,7 @@ Vanno lette e lanciate in ordine: ognuna aggiunge un pezzo alla precedente.
 | `09_mlp_nudo.py` | la tappa 8 senza una riga di commento: 30 righe in tutto | solo `torch` |
 
 ```sh
-uv run micrograd/03_backward.py
+uv run 01_micrograd/03_backward.py
 ```
 
 La tappa 7 riparte dagli stessi 41 numeri della 6, estratti con lo stesso seed

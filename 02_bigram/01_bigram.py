@@ -42,16 +42,16 @@ print("parola piu' lunga:", max(len(w) for w in words))
 # 2a. conteggio dei bigrammi con un dizionario
 # ---------------------------------------------------------------------------
 
-b = {}
+bigram_counts = {}
 for w in words:
     chs = ["<S>"] + list(w) + ["<E>"]
     for ch1, ch2 in zip(chs, chs[1:]):
         bigram = (ch1, ch2)
-        b[bigram] = b.get(bigram, 0) + 1
+        bigram_counts[bigram] = bigram_counts.get(bigram, 0) + 1
 
 # ordinati per conteggio decrescente: i bigrammi piu' probabili
-print("\nbigrammi piu' frequenti:", sorted(b.items(), key=lambda kv: -kv[1])[:5])
-print("bigrammi meno frequenti:", sorted(b.items(), key=lambda kv: kv[1])[:5])
+print("\nbigrammi piu' frequenti:", sorted(bigram_counts.items(), key=lambda kv: -kv[1])[:5])
+print("bigrammi meno frequenti:", sorted(bigram_counts.items(), key=lambda kv: kv[1])[:5])
 
 
 # ---------------------------------------------------------------------------
@@ -78,7 +78,7 @@ for w in words:
 # 3. visualizzazione della matrice dei conteggi
 # ---------------------------------------------------------------------------
 
-def plot_counts(path=HERE / "bigram_counts.png"):
+def plot_counts(path=HERE / "01_out_bigram_counts.png"):
     plt.figure(figsize=(16, 16))
     plt.imshow(N, cmap="Blues")
     for i in range(27):
