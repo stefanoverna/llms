@@ -1,0 +1,111 @@
+input_it.txt: 979092 caratteri, vocabolario di 75
+config 'big': 10.80M parametri su mps
+
+  step     0: train 3.5793  val 3.5962  | attn 0.99  rms   1.69  |   0.3m, eta 1287.4m
+               K/Q/V -2.0  feed forward -1.8  lm_head -2.0  pos emb -3.5  proj (attn) -2.0  token emb -3.6
+  step   500: train 1.7704  val 1.8304  | attn 0.61  rms   2.56  |   4.8m, eta  43.0m
+               K/Q/V -2.6  feed forward -2.6  lm_head -2.9  pos emb -4.0  proj (attn) -2.7  token emb -4.0
+  step  1000: train 1.4336  val 1.5949  | attn 0.54  rms   2.45  |   9.5m, eta  37.9m
+               K/Q/V -2.7  feed forward -2.6  lm_head -2.9  pos emb -4.1  proj (attn) -2.7  token emb -4.2
+  step  1500: train 1.2843  val 1.5045  | attn 0.51  rms   2.41  |  14.2m, eta  33.0m
+               K/Q/V -2.8  feed forward -2.6  lm_head -3.0  pos emb -4.2  proj (attn) -2.7  token emb -4.3
+  step  2000: train 1.1907  val 1.4618  | attn 0.50  rms   2.42  |  18.9m, eta  28.3m
+               K/Q/V -2.8  feed forward -2.6  lm_head -3.0  pos emb -4.2  proj (attn) -2.7  token emb -4.3
+  step  2500: train 1.1217  val 1.4313  | attn 0.49  rms   2.45  |  23.6m, eta  23.6m
+               K/Q/V -2.8  feed forward -2.7  lm_head -3.0  pos emb -4.2  proj (attn) -2.7  token emb -4.3
+  step  3000: train 1.0723  val 1.4112  | attn 0.48  rms   2.51  |  28.3m, eta  18.9m
+               K/Q/V -2.8  feed forward -2.7  lm_head -3.0  pos emb -4.2  proj (attn) -2.7  token emb -4.2
+  step  3500: train 1.0219  val 1.4025  | attn 0.48  rms   2.56  |  32.9m, eta  14.1m
+               K/Q/V -2.8  feed forward -2.7  lm_head -3.0  pos emb -4.2  proj (attn) -2.7  token emb -4.2
+  step  4000: train 0.9750  val 1.4203  | attn 0.47  rms   2.58  |  37.5m, eta   9.4m
+               K/Q/V -2.8  feed forward -2.7  lm_head -3.0  pos emb -4.1  proj (attn) -2.7  token emb -4.2
+  step  4500: train 0.9338  val 1.4096  | attn 0.47  rms   2.62  |  42.0m, eta   4.7m
+               K/Q/V -2.8  feed forward -2.7  lm_head -3.0  pos emb -4.1  proj (attn) -2.7  token emb -4.2
+  step  4999: train 0.8944  val 1.4242  | attn 0.47  rms   2.66  |  46.4m, eta   0.0m
+               K/Q/V -2.8  feed forward -2.7  lm_head -3.0  pos emb -4.1  proj (attn) -2.7  token emb -4.2
+
+pesi in 06_out_model_big.pt, grafici in 06_out_training_big.png
+
+
+Leonardo:
+Sì, sì, sì.
+
+Leonardo:
+E tu sarai forse mai, la mia vita per me.
+
+Guglielmo:
+Lei se l'avesse scena, vedendomi, prima del suo morto, te, padre,
+per tre i suoi "normali", possibili!
+
+Leonardo:
+Oh bella! E credo che quello che era una fortuna, quelle dremo, e qua
+le dica, quell'idea, le dice! lei per altrimentica, se ne farò subito
+quasi col ponsoffrirlo, stipendo d'un povero dovere. - E come
+pare per questo. Ma allora, sai? - Non rimanerlo più come per te stesso
+di te! Come perché, se per questo che cosa rimasto non dovevano
+mai fare a molto, coi te dico, "trovarlo", il mondo codesti dispiegazioni!
+
+Ludovico:
+Ma vi fate sempre di casa il professore?
+
+Ersilia:
+Se sono alla sua stanza di sofferenza, per suo vendo.
+
+Ludovico:
+Un male, la sua vita, non posso più niente più d'infesamente.
+
+Franco:
+Le ho detto!
+
+Ersilia:
+Ma io me ne posso sempre.... io certo così, sono andato....
+
+Franco:
+Come sarebbe? Era lei! Povera signora Ludovico?
+
+Ersilia:
+E ci sono, Ludovico, il dovere!
+
+Ersilia:
+No, ve ne parlo! Ne dispiace lei!
+
+Franco:
+Anche qua te stessa! Hanno casa! Hanno detto, e poi si sono avanti, che
+ci vergogna, anche così di noi....
+
+Ersilia:
+Mi vede che dispiace?
+
+Cantavalle:
+Eh.... mi pare che tu sii santo a dire....
+
+Ludovico:
+No, grazie, grazie a Dio!
+
+Ersilia:
+Ma che bellina le signorina è creatura del moglie, ma questo non
+capisco più bello. Le dico che nascondeva per una madre sto bene. Subito,
+subito e la signora ONÒ, dell'inferchè tu non sai bene che può atperare
+che parlano o un amarone messe d'agire, "denaro, d'essere in essere".
+
+La Nàccheri:
+Perchè non è così più! Nessun uomo così. Io voglio parlare di madre!
+
+Ersilia:
+Ma come non te ne vai; possono mai trattare qua, neanche là col suo
+libro?
+
+Grotti:
+Ma sì, vi faccio scrupolo, è vero! Mortali!
+
+Ersilia:
+Che vuoi che voglio che mi capisca questo?
+
+Grotti:
+No, vedi? Ti dico che non me n'accorgo.... scusi, o ho me
+la vuol dire questo giornale, io dico - e le dico in questa donna.
+
+Ersilia:
+Questo è r
+
+[5000 caratteri in 06_out_sample_big.txt]

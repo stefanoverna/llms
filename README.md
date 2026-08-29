@@ -12,6 +12,7 @@ script, i dati e la trascrizione della lezione da cui e' ricavato (i file
 | [`03_mlp/`](03_mlp) | [building makemore part 2: MLP](https://www.youtube.com/watch?v=TCH_1BHY58I) | MLP alla Bengio 2003, embedding imparati, minibatch, split train/dev/test |
 | [`03_mlp/`](03_mlp) | [building makemore part 3: activations & gradients, batchnorm](https://www.youtube.com/watch?v=P6sfmUTpUmc) | inizializzazione, tanh satura, Kaiming, batch normalization |
 | [`04_wavenet/`](04_wavenet) | [building makemore part 5: building a WaveNet](https://www.youtube.com/watch?v=t3YJ5hKiMQ0) | contesto piu' lungo, fusione gerarchica del contesto, batchnorm su tensori a 3 assi |
+| [`05_gpt/`](05_gpt) | [let's build GPT: from scratch, in code, spelled out](https://www.youtube.com/watch?v=kCc8FmEb1nY) | il Transformer decoder, un pezzo per volta |
 
 ## Come si lancia
 
@@ -32,6 +33,12 @@ uv run 03_mlp/08_gain_gradients.py   # ...e cosa succede ai gradienti
 uv run 03_mlp/09_learning_speed.py     # quanto si spostano i pesi: update:data
 uv run 03_mlp/10_batchnorm_robustness.py   # cosa resta da calibrare con la batchnorm
 uv run 04_wavenet/01_wavenet.py      # lezione 5: la MLP che diventa un albero
+uv run 05_gpt/01_bag_of_words.py     # lezione 6: dalla media del passato...
+uv run 05_gpt/02_self_attention.py   # ...alla prima testa di self-attention
+uv run 05_gpt/03_training.py         # il primo training vero: 1 testa contro 4
+uv run 05_gpt/04_blocks.py           # i Block impilati, e i residui che li rendono allenabili
+uv run 05_gpt/05_layernorm.py        # LayerNorm e dropout: da qui in poi e' un GPT
+uv run 05_gpt/06_gpt.py train        # la versione operativa: checkpoint, resume, diagnostica
 ```
 
 Gli script si possono lanciare da qualsiasi directory: i percorsi dei file sono
