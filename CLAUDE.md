@@ -47,12 +47,6 @@ Quando un risultato **non riproduce** quello della fonte, lo si dice e si va a
 capire perché, invece di aggiustare il testo per farlo tornare. La discrepanza è
 quasi sempre più istruttiva del numero.
 
-E prima di leggere una differenza, misurare il rumore: con un solo seme, mezzo
-punto di accuratezza può non voler dire niente. Se una tabella confronta
-configurazioni, o le si rifà su tre semi, o si dice esplicitamente quanto è
-ampio il rumore (vedi la tabella dell'ablation in
-`06_image_classification/README.md`).
-
 ## Come si lancia
 
 Solo [uv](https://docs.astral.sh/uv/), niente venv da attivare a mano:
