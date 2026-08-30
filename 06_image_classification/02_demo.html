@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="it">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>La rete di 01_network.py, nel browser</title>
+  <style>
+    :root {
+      --ink: #1a202c;
+      --muted: #4a5568;
+      --line: #cbd5e0;
+      --blue: #2b6cb0;
+      --orange: #c05621;
+      --paper: #f7fafc;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 2.5rem 1.5rem 4rem;
+      background: var(--paper);
+      color: var(--ink);
+      font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, sans-serif;
+    }
+
+    main {
+      max-width: 980px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 1.35rem;
+      margin: 0 0 0.35rem;
+    }
+
+    .lede {
+      color: var(--muted);
+      margin: 0 0 2rem;
+      max-width: 62ch;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.9em;
+      background: #edf2f7;
+      padding: 0.1em 0.35em;
+      border-radius: 3px;
+    }
+
+    .panels {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2rem;
+      align-items: flex-start;
+    }
+
+    .panel h2 {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      font-weight: 600;
+      margin: 0 0 0.6rem;
+    }
+
+    /* --- il canvas su cui si disegna --- */
+
+    #board {
+      width: 280px;
+      height: 280px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      cursor: crosshair;
+      touch-action: none;
+      display: block;
+    }
+
+    button {
+      margin-top: 0.75rem;
+      font: inherit;
+      font-size: 0.9rem;
+      color: var(--muted);
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      padding: 0.35rem 0.9rem;
+      cursor: pointer;
+    }
+
+    button:hover {
+      color: var(--ink);
+      border-color: var(--muted);
+    }
+
+    /* --- i due 28x28 --- */
+
+    .views {
+      display: flex;
+      gap: 1.25rem;
+    }
+
+    .view canvas {
+      width: 112px;
+      height: 112px;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      background: #fff;
+      display: block;
+      image-rendering: pixelated;
+    }
+
+    .view h3 {
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin: 0 0 0.4rem;
+    }
+
+    .view p {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin: 0.45rem 0 0;
+      max-width: 16ch;
+    }
+
+    .guess {
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      color: var(--blue);
+    }
+
+    .guess.disagrees {
+      color: var(--orange);
+    }
+
+    /* --- il verdetto, e le dieci barre sotto --- */
+
+    .verdict {
+      display: flex;
+      align-items: baseline;
+      gap: 0.7rem;
+      margin-bottom: 1.4rem;
+      min-height: 5.5rem;
+    }
+
+    .verdict-digit {
+      font-size: 5.5rem;
+      line-height: 1;
+      font-weight: 600;
+      color: var(--blue);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .verdict-digit.empty {
+      color: var(--line);
+    }
+
+    .verdict-confidence {
+      font-size: 0.95rem;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .histogram {
+      display: flex;
+      gap: 6px;
+      align-items: flex-end;
+    }
+
+    .bar {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .bar-track {
+      /* il riempimento cresce dal basso, non da sinistra */
+      display: flex;
+      align-items: flex-end;
+      width: 15px;
+      height: 52px;
+      background: #eaeef3;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      /* senza questo resta `display: inline`, e uno span inline ignora
+           width e height: le barre non si riempirebbero mai */
+      display: block;
+      width: 100%;
+      height: 0;
+      /* piu' scuro della traccia, se no una barra a zero e' indistinguibile
+           da una piena */
+      background: #a0aec0;
+      border-radius: 3px;
+      transition: height 0.06s linear;
+    }
+
+    .bar-digit {
+      font-size: 0.72rem;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .bar.winner .bar-fill {
+      background: var(--blue);
+    }
+
+    .bar.winner .bar-digit {
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    /* --- la nota in fondo --- */
+
+    .note {
+      margin-top: 2.75rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    /* la misura sta sui paragrafi, non sulla nota: se no la stringe anche
+       all'immagine, che di riquadri ne ha quaranta e ha bisogno di spazio */
+    .note p,
+    .note figcaption {
+      max-width: 68ch;
+    }
+
+    .note strong {
+      color: var(--ink);
+    }
+
+    .note figure {
+      margin: 1.4rem 0 0;
+      max-width: 860px;
+    }
+
+    .note img {
+      display: block;
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+    }
+
+    .note figcaption {
+      font-size: 0.82rem;
+      margin-top: 0.6rem;
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <h1>La rete</h1>
+    <p class="lede">
+      784 pixel in ingresso, 800 neuroni nascosti con tanh, 10 cifre in uscita.
+      <span id="params">636.010</span> parametri allenati su MNIST, <span id="accuracy">99%</span> su
+      test. Girano qui dentro senza nessuna libreria: due matrice-per-vettore e una tanh.
+    </p>
+
+    <div class="panels">
+      <div class="panel">
+        <h2>Disegna una cifra</h2>
+        <canvas id="board" width="280" height="280"></canvas>
+        <button id="clear" type="button">cancella</button>
+      </div>
+
+      <div class="panel">
+        <h2>Cosa vede la rete</h2>
+        <div class="views">
+          <div class="view">
+            <h3>normalizzata</h3>
+            <canvas id="view-normalized" width="112" height="112"></canvas>
+            <p>box da 20px, baricentro centrato: e' questa che entra nella rete</p>
+          </div>
+          <div class="view">
+            <h3>solo ridotta</h3>
+            <canvas id="view-raw" width="112" height="112"></canvas>
+            <p>il canvas schiacciato a 28x28: dice <span class="guess" id="guess-raw">—</span></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>La rete dice</h2>
+        <div class="verdict">
+          <span class="verdict-digit empty" id="verdict">—</span>
+          <span class="verdict-confidence" id="confidence"></span>
+        </div>
+        <div class="histogram">
+          <div class="bar"><span class="bar-track"><span class="bar-fill"></span></span><span class="bar-digit">0</span>
+          </div>
+          <div class="bar"><span class="bar-track"><span class="bar-fill"></span></span><span class="bar-digit">1</span>
+          </div>
+          <div class="bar"><span class="bar-track"><span class="bar-fill"></span></span><span class="bar-digit">2</span>
+          </div>
+          <div class="bar"><span class="bar-track"><span class="bar-fill"></span></span><span class="bar-digit">3</span>
+          </div>
+          <div class="bar"><span class="bar-track"><span class="bar-fill"></span></span><span class="bar-digit">4</span>
+          </div>
+          <div class="bar"><span class="bar-track"><span class="bar-fill"></span></span><span class="bar-digit">5</span>
+          </div>
+          <div class="bar"><span class="bar-track"><span class="bar-fill"></span></span><span class="bar-digit">6</span>
+          </div>
+          <div class="bar"><span class="bar-track"><span class="bar-fill"></span></span><span class="bar-digit">7</span>
+          </div>
+          <div class="bar"><span class="bar-track"><span class="bar-fill"></span></span><span class="bar-digit">8</span>
+          </div>
+          <div class="bar"><span class="bar-track"><span class="bar-fill"></span></span><span class="bar-digit">9</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="note">
+      <p>
+        Questa MLP non
+        ha nessuna invarianza per traslazione, i suoi 800 neuroni nascosti sono macchie ognuna
+        sensibile a una zona precisa — qui sotto.
+      </p>
+
+      <figure>
+        <img src="01_out_hidden_neurons.png"
+          alt="Quaranta riquadri 28x28, ognuno i pesi di un neurone nascosto: macchie rosse e blu sparse, ognuna concentrata in una zona diversa" />
+        <figcaption>
+          Rosso e blu sono i due segni del peso, sulla stessa scala per tutti e quaranta. Nessuno
+          guarda la cifra intera: ognuno ha la sua zona, e sono quelle zone che una traslazione
+          manda fuori bersaglio. Il file lo produce <code>01_network.py</code>.
+        </figcaption>
+      </figure>
+    </div>
+  </main>
+
+  <script src="01_out_weights.js"></script>
+  <script src="02_demo.js"></script>
+</body>
+
+</html>

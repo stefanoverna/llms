@@ -5,33 +5,49 @@ Il problema è quello del libro — 784 pixel in ingresso, dieci cifre in uscita
 una MLP con un layer nascosto, ma seguiamo le best practices che conosciamo.
 
     784 ingressi     i pixel dell'immagine, 28x28 appiattiti
-    200 nascosti     tanh
+    800 nascosti     tanh
      10 uscite       logits, nessuna attivazione sopra
 
-Il libro arriva al 95% di accuratezza, noi 98%.
+Il libro arriva al 95%, la stessa rete scritta bene al 98%, e questa qui al 99%.
 
-**I pesi che si tengono** sono quelli dell'epoca con la validation migliore,
-non quelli dell'ultima epoca: è la regola di `05_gpt/06_gpt.py`, e qui serve
-davvero, perché la rete overfitta. La train accuracy arriva a 100% e la loss di
-validation, dopo il minimo, risale — mentre l'accuratezza di validation, nello
-stesso intervallo, continua a *salire*. Le due misure divergono perché la
-cross-entropy è `-log p(giusta)`: limitata a zero quando indovini, illimitata
-quando sbagli. A fine training le poche immagini sbagliate sono il 2% del set e
-pesano per il 93% della loss, quindi la media racconta soprattutto quanto male
-fallisce su quelle — e la rete, continuando a spingere i margini, diventa più
-sicura di sé anche dove ha torto. L'accuratezza guarda solo l'argmax e non se
-ne accorge.
+Ma da 98% a 99% l'architettura non cambia: quello che si aggiunge sono le *distorsioni
+elastiche* di Simard, Steinkraus e Platt (ICDAR 2003), rigenerate a ogni epoca
+come in Cireșan et al. (2010). Si prende un campo di spostamenti casuali, lo si
+sfoca con una gaussiana, e lo si usa per riscrivere l'immagine: viene fuori una
+cifra deformata come se fosse stata scritta da una mano che tremava in modo
+diverso.
 
-**Due cose che abbiamo provato e non messo**, perché misurate non pagano.
-`nn.BatchNorm1d` fra il layer lineare e la tanh porta la validation da 96.52% a
-96.11%, ed è la conclusione a cui era già arrivato `03_mlp/03_batchnorm.py`: con
-*un* layer nascosto la scala giusta si calcola a mano, il problema che la
-batchnorm risolve nasce a cinquanta. E il dropout a 0.2 abbassa la validation,
-97.96% contro 98.14% — che è più sorprendente, visto che la rete
-overfitta eccome, e vuol dire che su MNIST quel divario fra train e validation è
-quasi tutto irriducibile. Metterli lo stesso sarebbe stato culto del cargo.
+L'alternativa e' aggiungere una rete di convoluzione. Simard li aveva provati
+entrambi:
+
+    niente distorsioni     1.6% di errore     98.4%
+    distorsioni affini     1.1%               98.9%
+    distorsioni elastiche  0.7%               99.3%
+    la sua convnet         0.4%               99.6%
+
+Visto che sono simili, non avere la convnet è un guadagno perchè sono molti meno
+calcoli a runtime durante la classificazione.
+
+**Cosa cambia rispetto alla versione senza deformazioni**, e sono tre cose che
+si tengono insieme.
+
+Gli 800 neuroni nascosti al posto di 200: con i dati fissi non servivano a
+niente, perché la rete già imparava le 50.000 immagini a memoria (overfitting) e
+allargarla peggiorava solo. Con dati sempre nuovi la capacità torna a essere il
+vincolo. Misurato: con 200 nascosti le stesse deformazioni si fermano a 98.96%
+di validation, sotto la soglia.
+
+Le 60 epoche al posto di 30: la rete non vede mai due volte la stessa immagine,
+quindi non c'è il momento in cui smette di imparare e comincia a memorizzare.
+
+E l'overfitting che sparisce. La versione precedente di questo file finiva con
+train accuracy a 100.00%, loss di training a 0.0001, e la loss di validation che
+risaliva dopo l'epoca 9 — overfitting da manuale. Qui non succede: le due curve
+restano appaiate per tutte le 60 epoche.
 """
 
+import base64
+import math
 import time
 from pathlib import Path
 
@@ -50,10 +66,17 @@ import mnist
 SEED = 1
 HERE = Path(__file__).parent
 
-HIDDEN = 200
+HIDDEN = 800
 BATCH_SIZE = 32
-EPOCHS = 30
+EPOCHS = 60
 LEARNING_RATE = 1e-3
+
+# I due numeri delle deformazioni elastiche, presi da Simard 2003: sigma e' la
+# larghezza della gaussiana che sfoca il campo casuale ("coefficiente di
+# elasticita'"), alpha di quanti pixel si sposta la roba. Il paper li tara su
+# immagini 29x29 e trova sigma=4, alpha=34.
+SIGMA = 4.0
+ALPHA = 34.0
 
 torch.manual_seed(SEED)
 
@@ -76,16 +99,121 @@ print(
   capitolo semplicemente non lo usa."""
 )
 
-train_loader = DataLoader(TensorDataset(xtr, ytr), batch_size=BATCH_SIZE, shuffle=True)
+
+# ---------------------------------------------------------------------------
+# 1. le deformazioni, che sono il punto di questo file
+# ---------------------------------------------------------------------------
+
+
+def gaussian_kernel(sigma, radius):
+    """Una gaussiana normalizzata, lunga 2*radius+1, per sfocare in 1D."""
+    t = torch.arange(-radius, radius + 1, dtype=torch.float32)
+    k = torch.exp(-(t**2) / (2 * sigma**2))
+    return k / k.sum()
+
+
+def distort(x, sigma=SIGMA, alpha=ALPHA, chunk=10000):
+    """(N, 784) -> (N, 784), ogni immagine deformata a modo suo.
+
+    La ricetta di Simard 2003, in quattro passaggi:
+
+      1. per ogni pixel si estrae uno spostamento casuale uniforme in [-1, 1],
+         uno orizzontale e uno verticale. Da solo e' rumore bianco: applicarlo
+         farebbe a pezzi l'immagine;
+      2. si sfoca il campo con una gaussiana di deviazione `sigma`. E' qui che
+         nasce l'elasticita': pixel vicini finiscono per spostarsi in direzioni
+         simili, e il tratto si piega invece di sbriciolarsi. Sigma piccolo da'
+         di nuovo rumore, sigma grande da' una traslazione rigida;
+      3. si moltiplica per `alpha`, che decide di quanti pixel si sposta;
+      4. si legge l'immagine originale nei punti spostati, interpolando
+         bilinearmente (`grid_sample`).
+
+    Il campo casuale si genera con un margine di `radius` per lato e lo si
+    convolve in "valid": e' il trucco dello zero-padding di Cireșan 2010, e
+    serve perche' altrimenti la sfocatura ai bordi somma degli zeri e tira gli
+    spostamenti verso zero proprio dove il tratto e' piu' fragile.
+    """
+    radius = int(math.ceil(3 * sigma))
+    kernel = gaussian_kernel(sigma, radius)
+    margin = 2 * radius
+    out = torch.empty_like(x)
+
+    # a blocchi, perche' il campo casuale con margine e' molto piu' grosso
+    # delle immagini: 50.000 x 2 x 52 x 52 sarebbe mezzo giga in una volta
+    for start in range(0, len(x), chunk):
+        images = x[start : start + chunk].view(-1, 1, 28, 28)
+        n = len(images)
+
+        field = torch.rand(n, 2, 28 + margin, 28 + margin) * 2 - 1
+        field = field.view(n * 2, 1, 28 + margin, 28 + margin)
+        field = F.conv2d(field, kernel.view(1, 1, 1, -1))  # sfoca in orizzontale
+        field = F.conv2d(field, kernel.view(1, 1, -1, 1))  # e poi in verticale
+        field = field.view(n, 2, 28, 28).permute(0, 2, 3, 1) * alpha
+
+        # grid_sample vuole coordinate normalizzate in [-1, 1], non pixel
+        field = field * (2.0 / 28.0)
+
+        identity = torch.zeros(n, 2, 3)
+        identity[:, 0, 0] = 1.0
+        identity[:, 1, 1] = 1.0
+        grid = F.affine_grid(identity, (n, 1, 28, 28), align_corners=False)
+
+        out[start : start + chunk] = F.grid_sample(
+            images, grid + field, mode="bilinear", padding_mode="zeros",
+            align_corners=False,
+        ).view(-1, 784)
+
+    return out
+
+
+print("\n=== 1. le deformazioni ===\n")
+
+sample = distort(xtr[:1].expand(8, 784).contiguous())
+print(f"  sigma={SIGMA} (quanto e' elastica), alpha={ALPHA} (di quanti pixel si sposta)")
+print(f"\n  la stessa immagine, l'originale e una delle infinite versioni deformate:\n")
+print(mnist.draw(xtr[0]))
+print()
+print(mnist.draw(sample[0]))
+
+deform_time = time.time()
+distort(xtr)
+deform_time = time.time() - deform_time
+
+print(
+    f"""
+  Deformare tutte le 50.000 costa {deform_time:.1f} secondi, e si rifa' *a ogni epoca*:
+  in {EPOCHS} epoche la rete non vede mai due volte la stessa immagine. E' la
+  risposta di Ciresan 2010 alla domanda di come facciano reti enormi a
+  generalizzare su cinquantamila esempi — non generalizzano da cinquantamila
+  esempi, ne vedono un milione e mezzo."""
+)
+
+# la figura: la stessa cifra deformata otto volte, per far vedere che restano
+# tutte leggibili e nessuna e' uguale all'altra
+fig, axes = plt.subplots(2, 9, figsize=(15, 3.6))
+for row, digit in enumerate([0, 1]):
+    versions = distort(xtr[digit : digit + 1].expand(8, 784).contiguous())
+    axes[row, 0].imshow(xtr[digit].reshape(28, 28), cmap="gray_r")
+    axes[row, 0].set_title("originale", fontsize=9)
+    for i in range(8):
+        axes[row, i + 1].imshow(versions[i].reshape(28, 28), cmap="gray_r")
+    for ax in axes[row]:
+        ax.set_xticks([])
+        ax.set_yticks([])
+fig.suptitle(f"la stessa cifra, deformata (sigma={SIGMA}, alpha={ALPHA}): questo e' cio' su cui la rete si allena")
+plt.tight_layout()
+plt.savefig(HERE / "01_out_distortions.png", bbox_inches="tight", dpi=100)
+plt.close()
+print("\n  figura in 01_out_distortions.png")
 
 
 # ---------------------------------------------------------------------------
-# 1. la rete
+# 2. la rete
 # ---------------------------------------------------------------------------
 
 
 def build():
-    """784 -> 200 con tanh -> 10 logits.
+    """784 -> 800 con tanh -> 10 logits.
     """
     model = nn.Sequential(
         nn.Linear(784, HIDDEN),
@@ -118,7 +246,7 @@ def build():
     # Ora, riguardo all'ultimo layer che sputa i logits. Niente Kaiming: il gain
     # serve a compensare lo schiacciamento di una tanh, e sopra i logits non
     # c'e' nessuna tanh.
-    
+
     # Il discorso sull'ultimo layer è solo che vogliamo evitare di perdere i
     # primi N cicli di training per valori iniziali completamente sballati. Ha
     # senso che questo layer parta dando valori di logits distribuiti
@@ -133,16 +261,22 @@ def build():
 model = build()
 n_params = sum(p.numel() for p in model.parameters())
 
-print("\n=== 1. la rete ===\n")
+print("\n=== 2. la rete ===\n")
 print(f"  {model}\n")
 print(f"  {n_params:,} parametri")
+print(
+    """
+  800 nascosti e non 200: e' la larghezza di Simard, ed e' anche l'unico modo
+  di sfruttare i dati nuovi. Senza deformazioni allargare la rete non serviva a
+  niente — imparava le 50.000 a memoria comunque, solo prima."""
+)
 
 
 # ---------------------------------------------------------------------------
-# 2. l'inizializzazione, verificata invece che sperata
+# 3. l'inizializzazione, verificata invece che sperata
 # ---------------------------------------------------------------------------
 
-print("\n=== 2. come parte ===\n")
+print("\n=== 3. come parte ===\n")
 
 with torch.no_grad():
     logits = model(xtr[:1000])
@@ -159,7 +293,7 @@ print(f"\n  attivazioni nascoste sature (|h| > 0.97): {saturated:.1f}%")
 print(f"  deviazione standard delle pre-attivazioni: {model[0](xtr[:1000]).std():.2f}")
 
 # ---------------------------------------------------------------------------
-# 3. il training
+# 4. il training
 # ---------------------------------------------------------------------------
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE)
@@ -175,6 +309,9 @@ def evaluate(model, x, y, chunk=5000):
     `model.eval()` qui non cambia niente — non ci sono dropout ne' batchnorm —
     ma la valutazione va scritta cosi' comunque: il giorno che si aggiunge uno
     dei due, dimenticarselo vuol dire misurare un'altra rete.
+
+    Si valuta sempre sulle immagini *non* deformate: le deformazioni servono ad
+    allenare, non a misurare.
     """
     model.eval()
     total_loss = 0.0
@@ -204,9 +341,12 @@ def update_data(before):
     ]
 
 
-print("\n=== 3. il training ===\n")
+steps_per_epoch = len(xtr) // BATCH_SIZE
+
+print("\n=== 4. il training ===\n")
 print(f"  {EPOCHS} epoche, minibatch da {BATCH_SIZE}, AdamW lr={LEARNING_RATE} con cosine annealing")
-print(f"  {len(train_loader)} passi per epoca, {EPOCHS * len(train_loader):,} in tutto\n")
+print(f"  {steps_per_epoch} passi per epoca, {EPOCHS * steps_per_epoch:,} in tutto")
+print(f"  il training set si rideforma all'inizio di ogni epoca\n")
 print(f"  {'epoca':>6}  {'loss train':>11}  {'loss val':>9}  {'acc train':>10}  {'acc val':>8}")
 
 history = {"train_loss": [], "val_loss": [], "train_acc": [], "val_acc": []}
@@ -217,7 +357,12 @@ best_state = None
 start = time.time()
 
 for epoch in range(EPOCHS):
-    for xb, yb in train_loader:
+    # i dati nuovi dell'epoca: stesse etichette, immagini mai viste prima
+    loader = DataLoader(
+        TensorDataset(distort(xtr), ytr), batch_size=BATCH_SIZE, shuffle=True, drop_last=True
+    )
+
+    for xb, yb in loader:
         optimizer.zero_grad(set_to_none=True)
         F.cross_entropy(model(xb), yb).backward()
 
@@ -246,41 +391,34 @@ for epoch in range(EPOCHS):
 elapsed = time.time() - start
 model.load_state_dict(best_state)
 
-print(f"\n  {elapsed:.0f} secondi.")
+print(f"\n  {elapsed / 60:.1f} minuti.")
 print(f"  ripresi i pesi dell'epoca {best_epoch}, validation {best_val_acc:.2f}%")
 
 
-# --- l'overfitting, che c'e' e si vede ---
+# --- l'overfitting, che adesso non c'e' piu' ---
 
 best_val_loss = min(history["val_loss"])
 print(
     f"""
-  La train accuracy arriva a {history['train_acc'][-1]:.2f}% e la loss di training a
-  {history['train_loss'][-1]:.4f}: la rete impara le 50.000 immagini a memoria. Intanto la
-  loss di validation tocca il minimo di {best_val_loss:.4f} all'epoca
-  {history['val_loss'].index(best_val_loss)}, e poi *risale* fino a {history['val_loss'][-1]:.4f}. E' overfitting da manuale.
+  La train accuracy si ferma a {history['train_acc'][-1]:.2f}% e la loss di training a
+  {history['train_loss'][-1]:.4f}. La versione senza deformazioni di questo file finiva a
+  100.00% e 0.0001: imparava le 50.000 immagini a memoria, e la loss di
+  validation risaliva dopo l'epoca 9. Qui la loss di validation tocca il minimo
+  di {best_val_loss:.4f} all'epoca {history['val_loss'].index(best_val_loss)} su {EPOCHS}, e le due curve restano appaiate.
 
-  Ma l'accuratezza di validation nello stesso intervallo non peggiora affatto:
-  continua a salire, fino al massimo dell'epoca {best_epoch}. Le due misure non
-  dicono la stessa cosa. La cross-entropy e' -log p(giusta), limitata a zero
-  quando indovini e illimitata quando sbagli, quindi la media e' quasi tutta un
-  resoconto di *quanto male* fallisce sulle poche che sbaglia — e quelle
-  rincarano, perche' la rete diventa piu' sicura di se' anche dove ha torto.
-  L'argmax non se ne accorge. Il dropout a 0.2, provato a parte, non recupera
-  niente
-  (97.96% contro 98.14%): quel divario fra train e validation e' quasi tutto
-  irriducibile, non e' rumore da regolarizzare via.
-
-  Il costo pratico e' comunque zero, perche' i pesi che teniamo sono quelli
-  dell'epoca migliore su validation. Le epoche dopo la {best_epoch} sono tempo di
-  calcolo buttato, non un danno."""
+  Non e' che abbiamo regolarizzato meglio: la rete e' quattro volte piu' grossa
+  di prima e non c'e' ne' dropout ne' weight decay in piu'. E' che non esiste
+  piu' un training set da imparare a memoria. Il dropout, provato sulla
+  versione precedente, non recuperava niente (97.96% contro 98.14%), e la
+  ragione si vede solo adesso: la regolarizzazione mette vincoli sulle stesse
+  50.000 immagini, le deformazioni aggiungono informazione che nei dati non
+  c'era — che un 5 storto e' ancora un 5."""
 )
 
 
 # --- quanto si sono mossi i pesi ---
 
 ratios_t = torch.tensor(ratios)
-steps_per_epoch = len(train_loader)
 
 print("\n  update:data in log10, media sulla prima e sull'ultima epoca:\n")
 print(f"    {'':>22}  {'1a epoca':>9}  {'ultima':>8}")
@@ -294,9 +432,8 @@ print(
     """
   La regola pratica di 03_mlp/09_learning_speed.py e' che questo numero stia
   intorno a -3: un millesimo di se' stesso per passo. Nella prima epoca ci
-  siamo. Alla fine e' molto piu' in basso, e non e' un problema, e' quello che
-  deve succedere: il cosine annealing ha portato il learning rate quasi a zero
-  e la loss di training e' a 0.0001, quindi i gradienti sono minuscoli.
+  siamo. Alla fine e' piu' in basso perche' il cosine annealing ha portato il
+  learning rate quasi a zero.
 
   Un update:data che *restasse* a -5 fin dalla prima epoca sarebbe tutt'altra
   cosa — il sintomo di un learning rate troppo basso — ed e' per questo che i
@@ -305,13 +442,14 @@ print(
 
 
 # ---------------------------------------------------------------------------
-# 4. il test, una volta sola
+# 5. il test, una volta sola
 # ---------------------------------------------------------------------------
 
 test_loss, test_acc = evaluate(model, xte, yte)
+errors = int(round((100 - test_acc) * len(xte) / 100))
 
-print("\n=== 4. il test ===\n")
-print(f"  loss {test_loss:.4f}, accuratezza {test_acc:.2f}%  ({int(round((100 - test_acc) * len(xte) / 100))} errori su {len(xte)})")
+print("\n=== 5. il test ===\n")
+print(f"  loss {test_loss:.4f}, accuratezza {test_acc:.2f}%  ({errors} errori su {len(xte)})")
 print(
     f"""
   Prima riga di codice che tocca il test, e l'ultima. La rete valutata qui e'
@@ -320,13 +458,18 @@ print(
   guardato. Che validation e test cadano cosi' vicini e' il segno che scegliere
   su validation non ha barato.
 
-  Il capitolo, con la stessa MLP a un layer nascosto, riporta 95.42%."""
+  Il capitolo, con la stessa MLP a un layer nascosto, riporta 95.42%. La stessa
+  rete scritta bene ma senza deformazioni fa 98.11%. Simard, con questa
+  identica architettura e queste identiche deformazioni, riporta 0.7% di
+  errore, cioe' 99.3%."""
 )
 
 
 # ---------------------------------------------------------------------------
-# 5. i grafici
+# 6. i grafici
 # ---------------------------------------------------------------------------
+
+print("\n=== 6. i grafici ===")
 
 fig, axes = plt.subplots(1, 3, figsize=(16, 4.6))
 
@@ -334,12 +477,15 @@ axes[0].plot(history["train_loss"], color="#2b6cb0", label="train")
 axes[0].plot(history["val_loss"], color="#c05621", label="validation")
 axes[0].set_xlabel("epoca")
 axes[0].set_ylabel("cross-entropy")
-axes[0].set_title("la loss (quella di validation risale: overfitting)")
+axes[0].set_title("la loss (le due curve non si separano: niente overfitting)")
 axes[0].legend()
 axes[0].grid(alpha=0.25)
 
 axes[1].plot(history["train_acc"], color="#2b6cb0", label="train")
 axes[1].plot(history["val_acc"], color="#c05621", label="validation")
+axes[1].axhline(99, color="#38a169", linestyle=":", linewidth=1.2)
+axes[1].annotate("99%", xy=(0, 99), xytext=(4, 3), textcoords="offset points",
+                 color="#38a169", fontsize=9)
 axes[1].set_xlabel("epoca")
 axes[1].set_ylabel("accuratezza (%)")
 axes[1].set_title("l'accuratezza")
@@ -385,7 +531,49 @@ print("  immagine in 01_out_hidden_neurons.png")
 
 
 # ---------------------------------------------------------------------------
-# 6. quelle che sbaglia
+# 7. i pesi, per la rete che gira nel browser
+# ---------------------------------------------------------------------------
+
+# 02_demo.html rifa' questo stesso forward in quindici righe di JavaScript, e
+# per farlo gli servono i pesi. I quattro tensori si mettono in fila e si
+# scrivono in base64: W1 (HIDDEN, 784) per righe, b1, W2 (10, HIDDEN) per
+# righe, b2, tutti float32 little-endian.
+#
+# Esce un .js e non un .json per un motivo pratico: un <script> si carica anche
+# con file://, un fetch() no, lo blocca la CORS policy. Cosi' la pagina si apre
+# col doppio click, senza tirare su un server.
+
+with torch.no_grad():
+    flat = torch.cat([
+        model[0].weight.flatten(),
+        model[0].bias,
+        model[2].weight.flatten(),
+        model[2].bias,
+    ])
+
+raw = flat.numpy().astype("<f4").tobytes()
+payload = base64.b64encode(raw).decode("ascii")
+
+(HERE / "01_out_weights.js").write_text(
+    f"""// generato da 01_network.py - non si modifica a mano.
+// W1 ({HIDDEN}, 784), b1 ({HIDDEN}), W2 (10, {HIDDEN}), b2 (10) in fila, float32 little-endian.
+const WEIGHTS = {{
+  hidden: {HIDDEN},
+  params: {n_params},
+  test_accuracy: {test_acc:.2f},
+  data: "{payload}",
+}};
+""",
+    encoding="ascii",
+)
+
+print("\n=== 7. i pesi per la demo ===\n")
+print(f"  {len(raw):,} byte di float32, {len(payload):,} caratteri in base64")
+print("  scritti in 01_out_weights.js, che 02_demo.html carica con un <script>")
+
+
+# ---------------------------------------------------------------------------
+# 8. quelle che sbaglia
 # ---------------------------------------------------------------------------
 
 with torch.no_grad():
@@ -393,7 +581,7 @@ with torch.no_grad():
     predicted = torch.cat([model(xte[k : k + 5000]).argmax(dim=1) for k in range(0, len(xte), 5000)])
 wrong = (predicted != yte).nonzero().flatten()
 
-print(f"\n=== 5. le {len(wrong)} che sbaglia ===\n")
+print(f"\n=== 8. le {len(wrong)} che sbaglia ===\n")
 for i in wrong[:2].tolist():
     print(f"  vera: {yte[i].item()}, la rete dice: {predicted[i].item()}\n")
     print(mnist.draw(xte[i]))
